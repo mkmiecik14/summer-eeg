@@ -47,3 +47,17 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# R projects 
+*.Rproj
+
+# directories
+doc/
+output/
+data/
+
+# MACOS
+.DS_Store
+
+# temporary MATLAB files
+*.asv
