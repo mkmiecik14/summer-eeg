@@ -52,9 +52,9 @@ function [success, EEG] = eeg_ica(subject_id, config)
             'interrupt', 'on', ...
             'pca', data_rank);
         
-        %% SAVE TO ICA STAGE DIRECTORY
-        fprintf('  Saving ICA dataset...\n');
-        EEG = save_eeg_to_stage(EEG, subject_id, 'ica', config);
+        %% SAVE ICA WEIGHTS ONLY (SPACE-EFFICIENT)
+        fprintf('  Saving ICA weights (lightweight)...\n');
+        save_ica_weights(EEG, subject_id, config);
         
         success = true;
         fprintf('  ICA completed successfully for %s\n', subject_id);

@@ -30,7 +30,7 @@ function [success, EEG_01Hz, EEG_1Hz] = eeg_prepro(subject_id, config)
             'importannot', 'off',...
             'bdfeventmode', 6);
         
-        %% PREPROCESSING STEPS (same as before)
+        %% PREPROCESSING STEPS
         fprintf('  Removing external channels...\n');
         EEG = pop_select(EEG, 'rmchannel', config.external_channels);
         

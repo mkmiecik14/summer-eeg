@@ -9,21 +9,13 @@ function [success, EEG] = eeg_epochs(subject_id, config)
     fprintf('=== EPOCHING SUBJECT: %s ===\n', subject_id);
     
     try
-        %% LOAD ICA DATA AND TRANSFER WEIGHTS
-        fprintf('  Loading ICA data...\n');
-        [EEG_1Hz, ~] = load_eeg_from_stage(subject_id, 'ica', config);
-        
+        %% LOAD DATA AND APPLY ICA WEIGHTS
         fprintf('  Loading 0.1Hz preprocessed data...\n');
         [EEG, ~] = load_eeg_from_stage(subject_id, 'preprocessed', config);
         
-        % Transfer ICA weights from 1Hz to 0.1Hz data
-        fprintf('  Transferring ICA weights...\n');
-        EEG.icaweights = EEG_1Hz.icaweights;
-        EEG.icasphere = EEG_1Hz.icasphere;
-        EEG.icawinv = EEG_1Hz.icawinv;
-        EEG.chanlocs = EEG_1Hz.chanlocs;
-        EEG.icachansind = EEG_1Hz.icachansind;
-        EEG.icaact = [];
+        % Load and apply ICA weights from lightweight file
+        fprintf('  Loading and applying ICA weights...\n');
+        EEG = load_ica_weights(EEG, subject_id, config);
         
         %% IC LABELING AND REJECTION
         fprintf('  Labeling and rejecting IC components...\n');
