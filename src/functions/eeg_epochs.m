@@ -4,9 +4,15 @@ function [success, EEG] = eeg_epochs(subject_id, config)
     % EEG_EPOCHS - Epoching and artifact rejection with stage-based organization
     
     success = false;
-    EEG = [];
     
     fprintf('=== EPOCHING SUBJECT: %s ===\n', subject_id);
+    
+    % Initialize EEGLAB if not already done
+    if ~exist('ALLEEG', 'var') || isempty(ALLEEG)
+        fprintf('  Initializing EEGLAB...\n');
+        [ALLEEG, EEG_temp, CURRENTSET, ALLCOM] = eeglab('nogui');
+        clear EEG_temp;
+    end
     
     try
         %% LOAD DATA AND APPLY ICA WEIGHTS
@@ -17,13 +23,13 @@ function [success, EEG] = eeg_epochs(subject_id, config)
         fprintf('  Loading and applying ICA weights...\n');
         EEG = load_ica_weights(EEG, subject_id, config);
         
-        %% IC LABELING AND REJECTION
+        %% IC LABELING AND ARTIFACT CORRECTION
         fprintf('  Labeling and rejecting IC components...\n');
         EEG = pop_iclabel(EEG, 'default');
         EEG = pop_icflag(EEG, ...
             [NaN NaN;...    % brain
-            0.8 1;...       % muscle (> 80% probability will reject)
-            0.8 1;...       % eye (> 80% probability will reject)
+            config.ica_rejection.muscle_threshold 1;...  % muscle
+            config.ica_rejection.eye_threshold 1;...     % eye
             NaN NaN;...     % heart
             NaN NaN;...     % line noise
             NaN NaN;...     % channel noise
@@ -51,17 +57,21 @@ function [success, EEG] = eeg_epochs(subject_id, config)
         fprintf('  Applying baseline correction...\n');
         EEG = pop_rmbase(EEG, [EEG.xmin 0]);
         
-        % Save epoched data
-        fprintf('  Saving epoched data...\n');
-        EEG = save_eeg_to_stage(EEG, subject_id, 'epoched', config);
-        
         %% ARTIFACT REJECTION
         fprintf('  Running artifact rejection...\n');
         initial_trials = EEG.trials;
         
-        % Amplitude-based rejection
+        % Amplitude-based rejection (mark but don't remove yet)
         EEG = pop_eegthresh(EEG, 1, [1:64], -config.amplitude_threshold, ...
             config.amplitude_threshold, EEG.xmin, EEG.xmax, 0, 0);
+        
+        % Save epoched data with rejection markers
+        fprintf('  Saving epoched data with rejection markers...\n');
+        EEG = save_eeg_to_stage(EEG, subject_id, 'epoched', config);
+        
+        % Now actually remove rejected trials
+        EEG = pop_eegthresh(EEG, 1, [1:64], -config.amplitude_threshold, ...
+            config.amplitude_threshold, EEG.xmin, EEG.xmax, 0, 1);
         
         % Update EEG structure
         [ALLEEG, EEG, CURRENTSET] = pop_newset(ALLEEG, EEG, 1, 'overwrite', 'on', 'gui', 'off');
@@ -87,13 +97,9 @@ function [success, EEG] = eeg_epochs(subject_id, config)
             [subject_id '_artifact_rejection_report.mat']);
         save(report_file, 'rejection_report');
         
-        %% SAVE FINAL CLEAN DATA
+        %% SAVE FINAL CLEAN AND ARTIFACT REJECTED DATA
         fprintf('  Saving artifact-rejected data...\n');
         EEG = save_eeg_to_stage(EEG, subject_id, 'artifacts_rejected', config);
-        
-        % Also save to final stage
-        fprintf('  Saving final analysis-ready data...\n');
-        EEG = save_eeg_to_stage(EEG, subject_id, 'final', config);
         
         success = true;
         fprintf('  Epoching completed successfully for %s\n', subject_id);

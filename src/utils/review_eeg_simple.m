@@ -30,6 +30,13 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
     
     fprintf('=== REVIEWING EEG DATA: %s (%s stage) ===\n', subject_id, stage);
     
+    % Initialize EEGLAB if not already done
+    if ~exist('ALLEEG', 'var') || isempty(ALLEEG)
+        fprintf('  Initializing EEGLAB...\n');
+        [ALLEEG, EEG_temp, CURRENTSET, ALLCOM] = eeglab('nogui');
+        clear EEG_temp;
+    end
+    
     try
         %% LOAD DATA BASED ON STAGE
         switch lower(stage)

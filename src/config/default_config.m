@@ -6,7 +6,7 @@ function config = default_config()
     config = struct();
     
     %% BASE PATHS
-    config.main_dir = '/Users/mattk/Library/CloudStorage/GoogleDrive-mkmiecik14@gmail.com/My Drive/projects/summer-eeg';
+    config.main_dir = pwd();
     config.data_dir = fullfile(config.main_dir, 'data');
     config.doc_dir = fullfile(config.main_dir, 'doc');
     
@@ -59,6 +59,11 @@ function config = default_config()
     config.epoch_window = [-0.2 3];
     config.baseline_window = [-0.2 0];
     config.amplitude_threshold = 100;
+    
+    %% ICA COMPONENT REJECTION THRESHOLDS
+    config.ica_rejection = struct();
+    config.ica_rejection.muscle_threshold = 0.8;  % Muscle artifact probability threshold
+    config.ica_rejection.eye_threshold = 0.8;     % Eye artifact probability threshold
     
     %% CLEANLINE PARAMETERS
     config.cleanline = struct();

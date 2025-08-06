@@ -8,6 +8,13 @@ function [success, EEG] = eeg_ica(subject_id, config)
     
     fprintf('=== ICA PROCESSING SUBJECT: %s ===\n', subject_id);
     
+    % Initialize EEGLAB if not already done
+    if ~exist('ALLEEG', 'var') || isempty(ALLEEG)
+        fprintf('  Initializing EEGLAB...\n');
+        [ALLEEG, EEG_temp, CURRENTSET, ALLCOM] = eeglab('nogui');
+        clear EEG_temp;
+    end
+    
     try
         %% LOAD PREPROCESSED DATA FROM STAGE DIRECTORY
         fprintf('  Loading 1Hz preprocessed data...\n');

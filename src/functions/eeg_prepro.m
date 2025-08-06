@@ -9,6 +9,13 @@ function [success, EEG_01Hz, EEG_1Hz] = eeg_prepro(subject_id, config)
     
     fprintf('=== PREPROCESSING SUBJECT: %s ===\n', subject_id);
     
+    % Initialize EEGLAB if not already done
+    if ~exist('ALLEEG', 'var') || isempty(ALLEEG)
+        fprintf('  Initializing EEGLAB...\n');
+        [ALLEEG, EEG_temp, CURRENTSET, ALLCOM] = eeglab('nogui');
+        clear EEG_temp;
+    end
+    
     try
         % Ensure output directories exist
         if config.create_directories
