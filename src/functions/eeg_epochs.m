@@ -70,8 +70,7 @@ function [success, EEG] = eeg_epochs(subject_id, config)
         EEG = save_eeg_to_stage(EEG, subject_id, 'epoched', config);
         
         % Now actually remove rejected trials
-        EEG = pop_eegthresh(EEG, 1, [1:64], -config.amplitude_threshold, ...
-            config.amplitude_threshold, EEG.xmin, EEG.xmax, 0, 1);
+        EEG = pop_rejepoch(EEG, find(EEG.reject.rejthresh), 0);
         
         % Update EEG structure
         [ALLEEG, EEG, CURRENTSET] = pop_newset(ALLEEG, EEG, 1, 'overwrite', 'on', 'gui', 'off');

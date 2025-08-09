@@ -88,7 +88,21 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
         
         %% OPEN SCROLLING DATA VIEW
         fprintf('  Opening data scrolling view...\n');
-        pop_eegplot(EEG, 1, 1, 1);
+        
+        if strcmp(stage, 'epoched') || strcmp(stage, 'artifacts_rejected')
+            % Check if there are any rejections marked
+            if isfield(EEG.reject, 'rejthresh') && any(EEG.reject.rejthresh)
+                fprintf('  Found %d trials marked for rejection\n', sum(EEG.reject.rejthresh));
+                light_green = [204, 255, 106] / 255; %  color for rej
+                winrej = trial2eegplot(EEG.reject.rejthresh, EEG.reject.rejthreshE, EEG.pnts, light_green);
+                eegplot(EEG.data, 'srate', EEG.srate, 'winrej', winrej, 'events', EEG.event);
+            else
+                fprintf('  No trials marked for rejection\n');
+                eegplot(EEG.data, 'srate', EEG.srate, 'events', EEG.event);
+            end
+        else
+            pop_eegplot(EEG, 1, 1, 1);
+        end
         
         %% OPTIONAL: ICA COMPONENTS
         if ~isempty(EEG.icaweights)
