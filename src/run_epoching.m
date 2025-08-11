@@ -1,7 +1,7 @@
-% FILE: run_preprocessing.m (in main project directory)
+% FILE: run_epoching.m (in main project directory)
 
-%% SIMPLE PREPROCESSING PIPELINE
-% This replaces current eeg_prepro.m for loop
+%% SIMPLE EPOCHING PIPELINE
+% This runs epoching and artifact rejection for all subjects using eeg_epochs.m function
 
 clear; clc;
 
@@ -20,7 +20,7 @@ config = default_config();
 [NUM, TXT, RAW] = xlsread(fullfile(config.doc_dir, 'ss-info.xlsx'));
 ss = string({RAW{2:size(RAW,1),1}});
 
-fprintf('Starting preprocessing for %d subjects...\n', length(ss));
+fprintf('Starting epoching and artifact rejection for %d subjects...\n', length(ss));
 
 % Process each subject
 success_count = 0;
@@ -32,8 +32,8 @@ for i = 1:length(ss)
     fprintf('\n=== Processing Subject %s (%d/%d) ===\n', this_ss, i, length(ss));
     
     try
-        % Run preprocessing function
-        [success, EEG_01Hz, EEG_1Hz] = eeg_prepro(this_ss, config);
+        % Run epoching function
+        [success, EEG] = eeg_epochs(this_ss, config);
         
         if success
             success_count = success_count + 1;
@@ -48,7 +48,7 @@ for i = 1:length(ss)
         fprintf('✗ Subject %s crashed: %s\n', this_ss, ME.message);
         
         % Save error for later analysis
-        error_file = fullfile(config.output_dir, [this_ss '_preprocessing_error.mat']);
+        error_file = fullfile(config.output_dir, [this_ss '_epoching_error.mat']);
         save(error_file, 'ME');
         
         % Continue with next subject
@@ -57,7 +57,7 @@ for i = 1:length(ss)
 end
 
 % Summary
-fprintf('\n=== PREPROCESSING COMPLETE ===\n');
+fprintf('\n=== EPOCHING AND ARTIFACT REJECTION COMPLETE ===\n');
 fprintf('Successful: %d/%d subjects\n', success_count, length(ss));
 fprintf('Failed: %d subjects\n', length(failed_subjects));
 

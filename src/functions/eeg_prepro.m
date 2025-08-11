@@ -61,9 +61,6 @@ function [success, EEG_01Hz, EEG_1Hz] = eeg_prepro(subject_id, config)
         fprintf('  Re-referencing to linked mastoids...\n');
         EEG = pop_reref(EEG, config.reference_channels, 'keepref', 'on');
         
-        fprintf('  Removing DC offset...\n');
-        EEG = pop_rmbase(EEG, [], []);
-        
         %% FILTERING
         fprintf('  Applying 0.1Hz highpass filter...\n');
         EEG_01Hz = pop_eegfiltnew(EEG, 'locutoff', config.highpass_01hz, 'plotfreqz', 0);

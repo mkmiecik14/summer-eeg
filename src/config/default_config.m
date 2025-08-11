@@ -30,11 +30,14 @@ function config = default_config()
     %% FILE NAMING CONVENTIONS
     config.naming = struct();
     config.naming.preprocessed_01hz = '%s-prepro';           % sub001-prepro
-    config.naming.preprocessed_1hz = '%s-prepro-1Hz';       % sub001-prepro-1Hz  
+    config.naming.preprocessed_1hz = '%s-prepro-1Hz';       % sub001-prepro-1Hz
+    config.naming.preprocessed_erplab = '%s-prepro-erplab'; % sub001-prepro-erplab  
     config.naming.ica = '%s-ica-1Hz';                       % sub001-ica-1Hz
     config.naming.components_rejected = '%s-clean';         % sub001-clean
     config.naming.epoched = '%s-epochs';                    % sub001-epochs
+    config.naming.epoched_erplab = '%s-epochs-erplab';     % sub001-epochs-erplab
     config.naming.artifacts_rejected = '%s-epochs-clean';   % sub001-epochs-clean
+    config.naming.artifacts_rejected_erplab = '%s-art-rej'; % sub001-art-rej
     config.naming.final = '%s-final';                       % sub001-final
     
     %% PROCESSING PARAMETERS (same as before)
@@ -52,8 +55,8 @@ function config = default_config()
     
     config.sampling_rate = 256;
     config.reference_channels = [24 61];
-    config.highpass_01hz = 0.1 * 2;
-    config.highpass_1hz = 1 * 2;
+    config.highpass_01hz = 0.1;
+    config.highpass_1hz = 1;
     
     config.event_codes = {'111','112','221','222'};
     config.epoch_window = [-0.2 3];
@@ -79,6 +82,30 @@ function config = default_config()
     config.cleanline.verb = 1;
     config.cleanline.winsize = 4;
     config.cleanline.winstep = 1;
+    
+    %% ERPLAB ARTIFACT REJECTION PARAMETERS
+    config.erplab_art_rej = struct();
+    
+    % Resample and filter parameters
+    config.erplab_art_rej.resample_rate = 256;
+    config.erplab_art_rej.highpass_filter = 0.01;
+    config.erplab_art_rej.lowpass_filter = 30;
+    
+    % Epoching parameters
+    config.erplab_art_rej.epoch_window = [-0.2 3];  % -200ms to 800ms
+    config.erplab_art_rej.baseline_window = [-0.2 0];  % -200ms to 0ms
+    
+    % Artifact rejection thresholds
+    config.erplab_art_rej.extreme_values_threshold = 100;  % ±100 µV
+    config.erplab_art_rej.peak_to_peak_threshold = 75;     % ±75 µV
+    config.erplab_art_rej.peak_to_peak_window_size = 200;  % 200ms
+    config.erplab_art_rej.peak_to_peak_window_step = 100;  % 100ms
+    config.erplab_art_rej.step_threshold = 60;             % ±60 µV
+    config.erplab_art_rej.step_window_size = 250;          % 250ms
+    config.erplab_art_rej.step_window_step = 20;           % 20ms
+    config.erplab_art_rej.trend_min_slope = 75;            % minimum slope
+    config.erplab_art_rej.trend_min_r2 = 0.3;             % minimum R²
+    
     
     %% OPTIONS
     config.enable_quality_control = true;
