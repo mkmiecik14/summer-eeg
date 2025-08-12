@@ -9,10 +9,12 @@ function config = default_config()
     config.main_dir = pwd();
     config.data_dir = fullfile(config.main_dir, 'data');
     config.doc_dir = fullfile(config.main_dir, 'doc');
-    
-    % Base output directory
     config.output_dir = fullfile(config.main_dir, 'output');
     
+    %% TOOLBOX PATHS
+    config.eeglab_dir = fileparts(which('eeglab')); % assumes already installed!
+    config.erplab_dir = fullfile(config.eeglab_dir, 'plugins', 'ERPLAB12.01'); % may need updating
+  
     %% STAGE-BASED OUTPUT DIRECTORIES
     config.dirs = struct();
     config.dirs.base = config.output_dir;
@@ -36,8 +38,8 @@ function config = default_config()
     config.naming.components_rejected = '%s-clean';         % sub001-clean
     config.naming.epoched = '%s-epochs';                    % sub001-epochs
     config.naming.epoched_erplab = '%s-epochs-erplab';     % sub001-epochs-erplab
-    config.naming.artifacts_rejected = '%s-epochs-clean';   % sub001-epochs-clean
-    config.naming.artifacts_rejected_erplab = '%s-art-rej'; % sub001-art-rej
+    config.naming.artifacts_rejected = '%s-art-rej';   % sub001-epochs-clean
+    config.naming.artifacts_rejected_erplab = '%s-art-rej-erplab'; % sub001-art-rej
     config.naming.final = '%s-final';                       % sub001-final
     
     %% PROCESSING PARAMETERS (same as before)

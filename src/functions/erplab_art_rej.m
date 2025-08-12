@@ -7,12 +7,23 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
     EEG = [];
     
     fprintf('=== ERPLAB ARTIFACT REJECTION: %s ===\n', subject_id);
+
+    % Add ERPLAB path explicitly
+    if exist(config.erplab_dir, 'dir')
+        addpath(genpath(config.erplab_dir));
+    end
     
     % Initialize EEGLAB if not already done
     if ~exist('ALLEEG', 'var') || isempty(ALLEEG)
         fprintf('  Initializing EEGLAB...\n');
+        
         [ALLEEG, EEG_temp, CURRENTSET, ALLCOM] = eeglab('nogui');
         clear EEG_temp;
+        
+        % Verify ERPLAB is available
+        if exist('pop_artmwppth', 'file') ~= 2
+            warning('ERPLAB functions may not be available');
+        end
     end
     
     try
@@ -31,12 +42,12 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
         
         % Get EEG channel indices (exclude external channels)
         eeg_channels = 1:EEG.nbchan;
-        for ext_ch = config.external_channels
-            ch_idx = find(strcmp({EEG.chanlocs.labels}, ext_ch));
-            if ~isempty(ch_idx)
-                eeg_channels(eeg_channels == ch_idx) = [];
-            end
-        end
+        %for ext_ch = config.external_channels
+        %    ch_idx = find(strcmp({EEG.chanlocs.labels}, ext_ch));
+        %    if ~isempty(ch_idx)
+        %        eeg_channels(eeg_channels == ch_idx) = [];
+        %    end
+        %end
         
         % Step 1: Flag trials where absolute EEG value is greater than ±100 microvolts
         fprintf('    Step 1: Extreme values (±%d µV)...\n', ...

@@ -8,11 +8,22 @@ function [success, EEG] = erplab_prepro(subject_id, config)
     
     fprintf('=== ERPLAB PREPROCESSING: %s ===\n', subject_id);
     
+    % Add ERPLAB path explicitly
+    if exist(config.erplab_dir, 'dir')
+        addpath(genpath(config.erplab_dir));
+    end
+    
     % Initialize EEGLAB if not already done
     if ~exist('ALLEEG', 'var') || isempty(ALLEEG)
         fprintf('  Initializing EEGLAB...\n');
+        
         [ALLEEG, EEG_temp, CURRENTSET, ALLCOM] = eeglab('nogui');
         clear EEG_temp;
+        
+        % Verify ERPLAB is available
+        if exist('pop_artmwppth', 'file') ~= 2
+            warning('ERPLAB functions may not be available');
+        end
     end
     
     try

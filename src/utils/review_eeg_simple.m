@@ -14,12 +14,16 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
     %   subject_id - String, subject identifier (e.g., 'CS_05_16_1')
     %   stage      - String, processing stage to load
     %   config     - Configuration structure from default_config()
-    %   options    - Optional struct with variant field
+    %   options    - Optional struct with fields:
+    %                .variant - '1Hz' for 1Hz filtered data (default: '')
+    %                .pipeline_type - 'eeglab' or 'erplab' for epoched/artifacts_rejected stages (default: 'eeglab')
     %
     % Examples:
     %   EEG = review_eeg_simple('CS_05_16_1', 'preprocessed', config);
     %   opts.variant = '1Hz'; 
     %   EEG = review_eeg_simple('CS_05_16_1', 'preprocessed', config, opts);
+    %   opts.pipeline_type = 'erplab';
+    %   EEG = review_eeg_simple('CS_05_16_1', 'epoched', config, opts);
 
     % Handle optional inputs
     if nargin < 4
@@ -27,6 +31,7 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
     end
     
     if ~isfield(options, 'variant'), options.variant = ''; end
+    if ~isfield(options, 'pipeline_type'), options.pipeline_type = 'eeglab'; end
     
     fprintf('=== REVIEWING EEG DATA: %s (%s stage) ===\n', subject_id, stage);
     
@@ -68,12 +73,38 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
                 [EEG, ~] = load_eeg_from_stage(subject_id, 'components_rejected', config);
                 
             case 'epoched'
-                fprintf('  Loading epoched data...\n');
-                [EEG, ~] = load_eeg_from_stage(subject_id, 'epoched', config);
+                if strcmp(options.pipeline_type, 'erplab')
+                    fprintf('  Loading ERPLAB epoched data...\n');
+                    % Load ERPLAB epoched data (with rejection markers)
+                    epoched_dir = config.dirs.epoched;
+                    filename = sprintf(config.naming.epoched_erplab, subject_id);
+                    epoched_file = fullfile(epoched_dir, [filename '.set']);
+                    if exist(epoched_file, 'file')
+                        EEG = pop_loadset(epoched_file);
+                    else
+                        error('ERPLAB epoched file not found: %s', epoched_file);
+                    end
+                else
+                    fprintf('  Loading EEGLAB epoched data...\n');
+                    [EEG, ~] = load_eeg_from_stage(subject_id, 'epoched', config);
+                end
                 
             case 'artifacts_rejected'
-                fprintf('  Loading artifact-rejected data...\n');
-                [EEG, ~] = load_eeg_from_stage(subject_id, 'artifacts_rejected', config);
+                if strcmp(options.pipeline_type, 'erplab')
+                    fprintf('  Loading ERPLAB artifact-rejected data...\n');
+                    % Load ERPLAB artifact-rejected data (final clean data)
+                    art_rej_dir = config.dirs.artifacts_rejected;
+                    filename = sprintf(config.naming.artifacts_rejected, subject_id);
+                    art_rej_file = fullfile(art_rej_dir, [filename '.set']);
+                    if exist(art_rej_file, 'file')
+                        EEG = pop_loadset(art_rej_file);
+                    else
+                        error('ERPLAB artifact-rejected file not found: %s', art_rej_file);
+                    end
+                else
+                    fprintf('  Loading EEGLAB artifact-rejected data...\n');
+                    [EEG, ~] = load_eeg_from_stage(subject_id, 'artifacts_rejected', config);
+                end
                 
             case 'final'
                 fprintf('  Loading final analysis-ready data...\n');
@@ -88,17 +119,27 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
         
         %% OPEN SCROLLING DATA VIEW
         fprintf('  Opening data scrolling view...\n');
+        light_green = [204, 255, 106] / 255; %  color for rej
         
         if strcmp(stage, 'epoched') || strcmp(stage, 'artifacts_rejected')
-            % Check if there are any rejections marked
-            if isfield(EEG.reject, 'rejthresh') && any(EEG.reject.rejthresh)
-                fprintf('  Found %d trials marked for rejection\n', sum(EEG.reject.rejthresh));
-                light_green = [204, 255, 106] / 255; %  color for rej
-                winrej = trial2eegplot(EEG.reject.rejthresh, EEG.reject.rejthreshE, EEG.pnts, light_green);
-                eegplot(EEG.data, 'srate', EEG.srate, 'winrej', winrej, 'events', EEG.event);
-            else
-                fprintf('  No trials marked for rejection\n');
-                eegplot(EEG.data, 'srate', EEG.srate, 'events', EEG.event);
+            if strcmp(options.pipeline_type, 'erplab')
+                % Check if there are any rejections marked for ERPLAB-based
+                if isfield(EEG.reject, 'rejmanual') && any(EEG.reject.rejmanual)
+                    fprintf('  Found %d trials marked for rejection\n', sum(EEG.reject.rejmanual));
+                    winrej = trial2eegplot(EEG.reject.rejmanual, EEG.reject.rejmanualE, EEG.pnts, light_green);
+                    eegplot(EEG.data, 'srate', EEG.srate, 'winrej', winrej, 'events', EEG.event);
+                end
+            else 
+                % Check if there are any rejections marked for EEGLAB-based
+                if isfield(EEG.reject, 'rejthresh') && any(EEG.reject.rejthresh)
+                    fprintf('  Found %d trials marked for rejection\n', sum(EEG.reject.rejthresh));
+                    
+                    winrej = trial2eegplot(EEG.reject.rejthresh, EEG.reject.rejthreshE, EEG.pnts, light_green);
+                    eegplot(EEG.data, 'srate', EEG.srate, 'winrej', winrej, 'events', EEG.event);
+                else
+                    fprintf('  No trials marked for rejection\n');
+                    eegplot(EEG.data, 'srate', EEG.srate, 'events', EEG.event);
+                end
             end
         else
             pop_eegplot(EEG, 1, 1, 1);
