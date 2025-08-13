@@ -31,16 +31,16 @@ function config = default_config()
     
     %% FILE NAMING CONVENTIONS
     config.naming = struct();
-    config.naming.preprocessed_01hz = '%s-prepro';           % sub001-prepro
-    config.naming.preprocessed_1hz = '%s-prepro-1Hz';       % sub001-prepro-1Hz
-    config.naming.preprocessed_erplab = '%s-prepro-erplab'; % sub001-prepro-erplab  
-    config.naming.ica = '%s-ica-1Hz';                       % sub001-ica-1Hz
-    config.naming.components_rejected = '%s-clean';         % sub001-clean
-    config.naming.epoched = '%s-epochs';                    % sub001-epochs
-    config.naming.epoched_erplab = '%s-epochs-erplab';     % sub001-epochs-erplab
-    config.naming.artifacts_rejected = '%s-art-rej';   % sub001-epochs-clean
-    config.naming.artifacts_rejected_erplab = '%s-art-rej-erplab'; % sub001-art-rej
-    config.naming.final = '%s-final';                       % sub001-final
+    config.naming.preprocessed_01hz = '%s-prepro';                  % sub001-prepro
+    config.naming.preprocessed_1hz = '%s-prepro-1Hz';               % sub001-prepro-1Hz
+    config.naming.preprocessed_erplab = '%s-prepro-erplab';         % sub001-prepro-erplab  
+    config.naming.ica = '%s-ica-1Hz';                               % sub001-ica-1Hz
+    config.naming.components_rejected = '%s-clean';                 % sub001-clean
+    config.naming.epoched = '%s-epochs';                            % sub001-epochs
+    config.naming.epoched_erplab = '%s-epochs-erplab';              % sub001-epochs-erplab
+    config.naming.artifacts_rejected = '%s-art-rej';                % sub001-art-rej
+    config.naming.artifacts_rejected_erplab = '%s-art-rej-erplab';  % sub001-art-rej-erplab
+    config.naming.final = '%s-final';                               % sub001-final
     
     %% PROCESSING PARAMETERS (same as before)
     config.external_channels = {'EXG1', 'EXG2', 'EXG3','EXG4','EXG5','EXG6','EXG7','EXG8'};
@@ -56,14 +56,14 @@ function config = default_config()
     config.channels_to_keep = [A_chans B_chans];
     
     config.sampling_rate = 256;
-    config.reference_channels = [24 61];
+    config.reference_channels = [24 61]; % avg. mastoid ref
     config.highpass_01hz = 0.1;
     config.highpass_1hz = 1;
     
     config.event_codes = {'111','112','221','222'};
-    config.epoch_window = [-0.2 3];
-    config.baseline_window = [-0.2 0];
-    config.amplitude_threshold = 100;
+    config.epoch_window = [-0.2 1.5]; % epoch window
+    config.baseline_window = [-0.2 0]; % baseline correction
+    config.amplitude_threshold = 100; % uV threshold
     
     %% ICA COMPONENT REJECTION THRESHOLDS
     config.ica_rejection = struct();
@@ -94,7 +94,7 @@ function config = default_config()
     config.erplab_art_rej.lowpass_filter = 30;
     
     % Epoching parameters
-    config.erplab_art_rej.epoch_window = [-0.2 3];  % -200ms to 800ms
+    config.erplab_art_rej.epoch_window = [-0.2 1.5];  % -200ms to 1500ms
     config.erplab_art_rej.baseline_window = [-0.2 0];  % -200ms to 0ms
     
     % Artifact rejection thresholds

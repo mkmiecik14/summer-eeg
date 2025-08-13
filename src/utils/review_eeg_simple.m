@@ -94,7 +94,7 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
                     fprintf('  Loading ERPLAB artifact-rejected data...\n');
                     % Load ERPLAB artifact-rejected data (final clean data)
                     art_rej_dir = config.dirs.artifacts_rejected;
-                    filename = sprintf(config.naming.artifacts_rejected, subject_id);
+                    filename = sprintf(config.naming.artifacts_rejected_erplab, subject_id);
                     art_rej_file = fullfile(art_rej_dir, [filename '.set']);
                     if exist(art_rej_file, 'file')
                         EEG = pop_loadset(art_rej_file);
@@ -121,19 +121,21 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
         fprintf('  Opening data scrolling view...\n');
         light_green = [204, 255, 106] / 255; %  color for rej
         
-        if strcmp(stage, 'epoched') || strcmp(stage, 'artifacts_rejected')
+        if strcmp(stage, 'epoched')
             if strcmp(options.pipeline_type, 'erplab')
                 % Check if there are any rejections marked for ERPLAB-based
                 if isfield(EEG.reject, 'rejmanual') && any(EEG.reject.rejmanual)
                     fprintf('  Found %d trials marked for rejection\n', sum(EEG.reject.rejmanual));
                     winrej = trial2eegplot(EEG.reject.rejmanual, EEG.reject.rejmanualE, EEG.pnts, light_green);
                     eegplot(EEG.data, 'srate', EEG.srate, 'winrej', winrej, 'events', EEG.event);
+                else
+                    fprintf('  No trials marked for rejection\n');
+                    eegplot(EEG.data, 'srate', EEG.srate, 'events', EEG.event);
                 end
             else 
                 % Check if there are any rejections marked for EEGLAB-based
                 if isfield(EEG.reject, 'rejthresh') && any(EEG.reject.rejthresh)
                     fprintf('  Found %d trials marked for rejection\n', sum(EEG.reject.rejthresh));
-                    
                     winrej = trial2eegplot(EEG.reject.rejthresh, EEG.reject.rejthreshE, EEG.pnts, light_green);
                     eegplot(EEG.data, 'srate', EEG.srate, 'winrej', winrej, 'events', EEG.event);
                 else
@@ -141,6 +143,10 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
                     eegplot(EEG.data, 'srate', EEG.srate, 'events', EEG.event);
                 end
             end
+        elseif strcmp(stage, 'artifacts_rejected')
+            % For artifact-rejected data, plot clean epochs without highlighting rejections
+            fprintf('  Displaying clean epochs (artifacts already removed)\n');
+            eegplot(EEG.data, 'srate', EEG.srate, 'events', EEG.event);
         else
             pop_eegplot(EEG, 1, 1, 1);
         end

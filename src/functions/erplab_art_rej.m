@@ -107,6 +107,16 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
         EEG_epoched = pop_saveset(EEG, 'filename', [epoched_filename '.set'], ...
             'filepath', config.dirs.epoched);
         
+        %% ACTUALLY REJECT MARKED EPOCHS
+        fprintf('  Rejecting marked epochs...\n');
+        if isfield(EEG.reject, 'rejmanual') && any(EEG.reject.rejmanual)
+            rejected_count = sum(EEG.reject.rejmanual);
+            fprintf('    Removing %d rejected epochs from dataset...\n', rejected_count);
+            EEG = pop_rejepoch(EEG, find(EEG.reject.rejmanual), 0);
+        else
+            fprintf('    No epochs marked for rejection\n');
+        end
+        
         %% SAVE ARTIFACT REJECTED DATA
         fprintf('  Saving artifact-rejected data...\n');
         art_rej_filename = sprintf(config.naming.artifacts_rejected_erplab, subject_id);
@@ -114,9 +124,16 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
             'filepath', config.dirs.artifacts_rejected);
         
         %% GENERATE ARTIFACT REJECTION REPORT
-        initial_trials = EEG.trials;
-        rejected_trials = sum(EEG.reject.rejmanual);
-        final_trials = initial_trials - rejected_trials;
+        % Note: epochs are now actually removed, so we need to track before rejection
+        if exist('rejected_count', 'var')
+            final_trials = EEG.trials;
+            initial_trials = final_trials + rejected_count;
+            rejected_trials = rejected_count;
+        else
+            initial_trials = EEG.trials;
+            rejected_trials = 0;
+            final_trials = initial_trials;
+        end
         rejection_rate = (rejected_trials / initial_trials) * 100;
         
         fprintf('  Artifact rejection summary:\n');
