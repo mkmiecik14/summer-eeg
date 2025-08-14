@@ -32,7 +32,7 @@ function bad_channels = get_bad_channels_from_excel(subject_id, config)
         % assumes column 2 contains bad channel info
         bad_chan_data = RAW{subject_row, 2};
         
-        if isnan(bad_chan_data) || isempty(bad_chan_data)
+        if isempty(bad_chan_data) || (isnumeric(bad_chan_data) && all(isnan(bad_chan_data)))
             bad_channels = [];
         elseif ischar(bad_chan_data) || isstring(bad_chan_data)
             % Parse string of channel numbers

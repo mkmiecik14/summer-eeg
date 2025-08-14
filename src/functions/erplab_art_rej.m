@@ -32,6 +32,19 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
         prepro_filename = sprintf(config.naming.preprocessed_erplab, subject_id);
         EEG = pop_loadset('filename', [prepro_filename '.set'], ...
             'filepath', config.dirs.preprocessed);
+
+        %% CREATE BASIC EVENTLIST FOR ERPLAB
+        fprintf('  Creating ERPLAB eventlist...\n');
+        EEG = pop_creabasiceventlist(EEG, 'AlphanumericCleaning', 'on', ...
+            'BoundaryNumeric', {-99}, 'BoundaryString', {'boundary'});
+        
+        %% EPOCH DATA
+        fprintf('  Creating epochs...\n');
+        EEG = pop_epoch(EEG, config.event_codes, config.erplab_art_rej.epoch_window);
+        
+        %% BASELINE CORRECT FROM -200ms TO 0ms
+        fprintf('  Applying baseline correction...\n');
+        EEG = pop_rmbase(EEG, config.erplab_art_rej.baseline_window);
         
         %% EOG ARTIFACT REJECTION (SKIPPED)
         % EOG artifact rejection would go here but is skipped as requested

@@ -78,19 +78,6 @@ function [success, EEG] = erplab_prepro(subject_id, config)
         fprintf('  Re-referencing to average mastoid...\n');
         EEG = pop_reref(EEG, config.reference_channels);
         
-        %% CREATE BASIC EVENTLIST FOR ERPLAB
-        fprintf('  Creating ERPLAB eventlist...\n');
-        EEG = pop_creabasiceventlist(EEG, 'AlphanumericCleaning', 'on', ...
-            'BoundaryNumeric', {-99}, 'BoundaryString', {'boundary'});
-        
-        %% EPOCH DATA
-        fprintf('  Creating epochs...\n');
-        EEG = pop_epoch(EEG, config.event_codes, config.erplab_art_rej.epoch_window);
-        
-        %% BASELINE CORRECT FROM -200ms TO 0ms
-        fprintf('  Applying baseline correction...\n');
-        EEG = pop_rmbase(EEG, config.erplab_art_rej.baseline_window);
-        
         %% SAVE PREPROCESSED DATA TO 02_PREPROCESSED
         fprintf('  Saving preprocessed data...\n');
         prepro_filename = sprintf(config.naming.preprocessed_erplab, subject_id);

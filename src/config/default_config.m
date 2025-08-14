@@ -61,7 +61,7 @@ function config = default_config()
     config.highpass_1hz = 1;
     
     config.event_codes = {'111','112','221','222'};
-    config.epoch_window = [-0.2 1.5]; % epoch window
+    config.epoch_window = [-0.2 1]; % epoch window
     config.baseline_window = [-0.2 0]; % baseline correction
     config.amplitude_threshold = 100; % uV threshold
     
@@ -94,19 +94,19 @@ function config = default_config()
     config.erplab_art_rej.lowpass_filter = 30;
     
     % Epoching parameters
-    config.erplab_art_rej.epoch_window = [-0.2 1.5];  % -200ms to 1500ms
-    config.erplab_art_rej.baseline_window = [-0.2 0];  % -200ms to 0ms
+    config.erplab_art_rej.epoch_window = [-0.2 1];  % ERPLAB epoch window
+    config.erplab_art_rej.baseline_window = [-0.2 0];  % ERPLAB baseline
     
     % Artifact rejection thresholds
-    config.erplab_art_rej.extreme_values_threshold = 100;  % ±100 µV
-    config.erplab_art_rej.peak_to_peak_threshold = 75;     % ±75 µV
-    config.erplab_art_rej.peak_to_peak_window_size = 200;  % 200ms
-    config.erplab_art_rej.peak_to_peak_window_step = 100;  % 100ms
-    config.erplab_art_rej.step_threshold = 60;             % ±60 µV
-    config.erplab_art_rej.step_window_size = 250;          % 250ms
-    config.erplab_art_rej.step_window_step = 20;           % 20ms
-    config.erplab_art_rej.trend_min_slope = 75;            % minimum slope
-    config.erplab_art_rej.trend_min_r2 = 0.3;             % minimum R²
+    config.erplab_art_rej.extreme_values_threshold = 100;   % ±100 µV
+    config.erplab_art_rej.peak_to_peak_threshold = 75;      % ±75 µV
+    config.erplab_art_rej.peak_to_peak_window_size = 200;   % 200ms
+    config.erplab_art_rej.peak_to_peak_window_step = 100;   % 100ms
+    config.erplab_art_rej.step_threshold = 60;              % ±60 µV
+    config.erplab_art_rej.step_window_size = 250;           % 250ms
+    config.erplab_art_rej.step_window_step = 20;            % 20ms
+    config.erplab_art_rej.trend_min_slope = 75;             % minimum slope
+    config.erplab_art_rej.trend_min_r2 = 0.3;               % minimum R²
     
     
     %% OPTIONS

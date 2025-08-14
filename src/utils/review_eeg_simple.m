@@ -1,6 +1,6 @@
 % FILE: src/utils/review_eeg_simple.m
 
-function EEG = review_eeg_simple(subject_id, stage, config, options)
+function EEG = review_eeg_simple(subject_id, stage, config, pipeline_type)
     % REVIEW_EEG_SIMPLE - Simplified EEG data review function
     %
     % A simpler version of review_eeg_data that avoids EEGLAB workspace issues
@@ -8,30 +8,31 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
     %
     % Syntax: 
     %   EEG = review_eeg_simple(subject_id, stage, config)
-    %   EEG = review_eeg_simple(subject_id, stage, config, options)
+    %   EEG = review_eeg_simple(subject_id, stage, config, pipeline_type)
     %
     % Inputs:
-    %   subject_id - String, subject identifier (e.g., 'CS_05_16_1')
-    %   stage      - String, processing stage to load
-    %   config     - Configuration structure from default_config()
-    %   options    - Optional struct with fields:
-    %                .variant - '1Hz' for 1Hz filtered data (default: '')
-    %                .pipeline_type - 'eeglab' or 'erplab' for epoched/artifacts_rejected stages (default: 'eeglab')
+    %   subject_id    - String, subject identifier (e.g., 'CS_05_16_1')
+    %   stage         - String, processing stage to load:
+    %                   'raw', 'preprocessed', 'preprocessed_1hz', 'ica', 
+    %                   'components_rejected', 'epoched', 'artifacts_rejected', 'final'
+    %   config        - Configuration structure from default_config()
+    %   pipeline_type - Optional string, 'eeglab' (default) or 'erplab'
+    %                   Note: Some stage/pipeline combinations are invalid:
+    %                   - 'preprocessed_1hz', 'ica', 'components_rejected' only work with 'eeglab'
+    %                   - 'epoched', 'artifacts_rejected' work with both but load different files
     %
     % Examples:
     %   EEG = review_eeg_simple('CS_05_16_1', 'preprocessed', config);
-    %   opts.variant = '1Hz'; 
-    %   EEG = review_eeg_simple('CS_05_16_1', 'preprocessed', config, opts);
-    %   opts.pipeline_type = 'erplab';
-    %   EEG = review_eeg_simple('CS_05_16_1', 'epoched', config, opts);
+    %   EEG = review_eeg_simple('CS_05_16_1', 'preprocessed_1hz', config);
+    %   EEG = review_eeg_simple('CS_05_16_1', 'epoched', config, 'erplab');
 
     % Handle optional inputs
-    if nargin < 4
-        options = struct();
+    if nargin < 4 || isempty(pipeline_type)
+        pipeline_type = 'eeglab';
     end
     
-    if ~isfield(options, 'variant'), options.variant = ''; end
-    if ~isfield(options, 'pipeline_type'), options.pipeline_type = 'eeglab'; end
+    % Validate input combinations
+    validate_stage_pipeline_combination(stage, pipeline_type);
     
     fprintf('=== REVIEWING EEG DATA: %s (%s stage) ===\n', subject_id, stage);
     
@@ -49,7 +50,7 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
                 EEG = load_raw_data_simple(subject_id, config);
                 
             case {'preprocessed', 'preprocessed_1hz'}
-                if strcmp(stage, 'preprocessed_1hz') || strcmp(options.variant, '1Hz')
+                if strcmp(stage, 'preprocessed_1hz')
                     fprintf('  Loading 1Hz preprocessed data...\n');
                     [EEG, ~] = load_eeg_from_stage(subject_id, 'preprocessed', config, '1Hz');
                 else
@@ -59,13 +60,9 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
                 
             case 'ica'
                 % Load preprocessed data and apply ICA weights
-                if strcmp(options.variant, '1Hz')
-                    fprintf('  Loading 1Hz preprocessed data with ICA weights...\n');
-                    [EEG, ~] = load_eeg_from_stage(subject_id, 'preprocessed', config, '1Hz');
-                else
-                    fprintf('  Loading 0.1Hz preprocessed data with ICA weights...\n');
-                    [EEG, ~] = load_eeg_from_stage(subject_id, 'preprocessed', config);
-                end
+                % Default to 0.1Hz for ICA stage
+                fprintf('  Loading 0.1Hz preprocessed data with ICA weights...\n');
+                [EEG, ~] = load_eeg_from_stage(subject_id, 'preprocessed', config);
                 EEG = load_ica_weights(EEG, subject_id, config);
                 
             case 'components_rejected'
@@ -73,7 +70,7 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
                 [EEG, ~] = load_eeg_from_stage(subject_id, 'components_rejected', config);
                 
             case 'epoched'
-                if strcmp(options.pipeline_type, 'erplab')
+                if strcmp(pipeline_type, 'erplab')
                     fprintf('  Loading ERPLAB epoched data...\n');
                     % Load ERPLAB epoched data (with rejection markers)
                     epoched_dir = config.dirs.epoched;
@@ -90,7 +87,7 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
                 end
                 
             case 'artifacts_rejected'
-                if strcmp(options.pipeline_type, 'erplab')
+                if strcmp(pipeline_type, 'erplab')
                     fprintf('  Loading ERPLAB artifact-rejected data...\n');
                     % Load ERPLAB artifact-rejected data (final clean data)
                     art_rej_dir = config.dirs.artifacts_rejected;
@@ -111,7 +108,7 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
                 [EEG, ~] = load_eeg_from_stage(subject_id, 'final', config);
                 
             otherwise
-                error('Unknown stage: %s. Valid stages: raw, preprocessed, ica, components_rejected, epoched, artifacts_rejected, final', stage);
+                error('Unknown stage: %s. Valid stages: raw, preprocessed, preprocessed_1hz, ica, components_rejected, epoched, artifacts_rejected, final', stage);
         end
         
         %% DISPLAY DATA INFORMATION
@@ -122,7 +119,7 @@ function EEG = review_eeg_simple(subject_id, stage, config, options)
         light_green = [204, 255, 106] / 255; %  color for rej
         
         if strcmp(stage, 'epoched')
-            if strcmp(options.pipeline_type, 'erplab')
+            if strcmp(pipeline_type, 'erplab')
                 % Check if there are any rejections marked for ERPLAB-based
                 if isfield(EEG.reject, 'rejmanual') && any(EEG.reject.rejmanual)
                     fprintf('  Found %d trials marked for rejection\n', sum(EEG.reject.rejmanual));
@@ -219,4 +216,50 @@ function display_data_info_simple(EEG, stage)
     end
     
     fprintf('------------------------\n\n');
+end
+
+function validate_stage_pipeline_combination(stage, pipeline_type)
+    % VALIDATE_STAGE_PIPELINE_COMBINATION - Check for invalid stage/pipeline combinations
+    %
+    % This function prevents common user errors by validating that the requested
+    % stage and pipeline type combination is valid.
+    
+    % Validate pipeline_type
+    if ~ismember(pipeline_type, {'eeglab', 'erplab'})
+        error('Invalid pipeline_type: %s. Must be ''eeglab'' or ''erplab''.', pipeline_type);
+    end
+    
+    % Define which stages are incompatible with which pipelines
+    switch lower(stage)
+        case 'preprocessed_1hz'
+            if strcmp(pipeline_type, 'erplab')
+                error(['Invalid combination: preprocessed_1hz stage is not available for erplab pipeline.' newline ...
+                       'ERPLAB preprocessing does not create 1Hz variants.' newline ...
+                       'Use ''preprocessed'' stage instead, or switch to ''eeglab'' pipeline.']);
+            end
+            
+        case 'ica'
+            if strcmp(pipeline_type, 'erplab')
+                error(['Invalid combination: ica stage is not available for erplab pipeline.' newline ...
+                       'ERPLAB pipeline does not use ICA decomposition.' newline ...
+                       'Use ''eeglab'' pipeline for ICA-based processing.']);
+            end
+            
+        case 'components_rejected'
+            if strcmp(pipeline_type, 'erplab')
+                error(['Invalid combination: components_rejected stage is not available for erplab pipeline.' newline ...
+                       'ERPLAB pipeline does not use ICA component rejection.' newline ...
+                       'Use ''eeglab'' pipeline for ICA-based processing.']);
+            end
+            
+        case {'raw', 'preprocessed', 'final'}
+            % These stages are valid for both pipelines (though may not always exist)
+            
+        case {'epoched', 'artifacts_rejected'}
+            % These stages are valid for both pipelines but load different files
+            % No validation error needed here
+            
+        otherwise
+            % Error will be caught later in the main switch statement
+    end
 end
