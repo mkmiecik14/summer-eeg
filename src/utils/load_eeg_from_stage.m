@@ -1,26 +1,70 @@
-% FILE: src/utils/load_eeg_from_stage.m
-
 function [EEG, data_file] = load_eeg_from_stage(subject_id, stage, config, variant)
-    % LOAD_EEG_FROM_STAGE - Load EEG data from specific processing stage
+    % LOAD_EEG_FROM_STAGE - Load EEG datasets from standardized processing stages
     %
-    % Loads EEG data from the appropriate stage directory using standardized
-    % naming conventions.
+    % LOAD_EEG_FROM_STAGE provides a unified interface for loading EEG data
+    % from any processing stage using the project's standardized directory
+    % structure and naming conventions. Supports multiple variants and robust
+    % file discovery with detailed error reporting.
     %
-    % Syntax: [EEG, data_file] = load_eeg_from_stage(subject_id, stage, config, variant)
+    % Syntax: 
+    %   [EEG, data_file] = load_eeg_from_stage(subject_id, stage, config)
+    %   [EEG, data_file] = load_eeg_from_stage(subject_id, stage, config, variant)
     %
     % Inputs:
-    %   subject_id - String, subject identifier
-    %   stage      - String, processing stage to load from
-    %   config     - Configuration structure
-    %   variant    - String, optional variant (e.g., '1Hz')
+    %   subject_id - String, subject identifier (e.g., 'george')
+    %   stage      - String, processing stage to load from:
+    %                'preprocessed'        - Filtered, re-referenced data
+    %                'ica'                 - ICA decomposition results  
+    %                'components_rejected' - Data after component removal
+    %                'epoched'             - Segmented data around events
+    %                'artifacts_rejected'  - Final clean epochs
+    %                'final'               - Analysis-ready datasets
+    %   config     - Configuration structure from default_config() containing:
+    %                .dirs   - Directory paths for each stage
+    %                .naming - Filename patterns for each stage
+    %   variant    - String, optional data variant:
+    %                '1Hz'  - 1Hz high-pass filtered version (preprocessed only)
+    %                ''     - Default 0.1Hz version (default)
     %
     % Outputs:
-    %   EEG       - Loaded EEG structure
-    %   data_file - File information structure
+    %   EEG       - EEGLAB EEG structure containing loaded dataset
+    %   data_file - File information structure with .name, .folder, .date fields
+    %
+    % Stage Directory Mapping:
+    %   preprocessed        -> output/02_preprocessed/
+    %   ica                 -> output/03_ica/
+    %   components_rejected -> output/04_components_rejected/
+    %   epoched             -> output/05_epoched/
+    %   artifacts_rejected  -> output/06_artifacts_rejected/
+    %   final               -> output/07_final/
     %
     % Examples:
-    %   [EEG, file] = load_eeg_from_stage('sub001', 'preprocessed', config);
-    %   [EEG, file] = load_eeg_from_stage('sub001', 'preprocessed', config, '1Hz');
+    %   % Load standard preprocessed data (0.1Hz)
+    %   config = default_config();
+    %   [EEG, file] = load_eeg_from_stage('newman', 'preprocessed', config);
+    %
+    %   % Load 1Hz variant of preprocessed data
+    %   [EEG, file] = load_eeg_from_stage('frank', 'preprocessed', config, '1Hz');
+    %
+    %   % Load epoched data for analysis
+    %   [EEG, file] = load_eeg_from_stage('estelle', 'epoched', config);
+    %
+    % Error Handling:
+    %   - Throws error if stage is not recognized
+    %   - Throws error if no files match the expected pattern
+    %   - Warns and uses first file if multiple files match pattern
+    %   - Provides detailed file path information in error messages
+    %
+    % Notes:
+    %   - Uses pop_loadset() for EEGLAB compatibility
+    %   - Automatically constructs file paths using config naming conventions
+    %   - Supports variant naming for filtered data versions
+    %   - Prints loaded filename for verification
+    %   - File discovery is case-sensitive on Unix systems
+    %
+    % See also: pop_loadset, save_eeg_to_stage, default_config, review_eeg_simple
+    %
+    % Author: Matt Kmiecik
 
     if nargin < 4
         variant = '';

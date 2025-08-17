@@ -1,10 +1,10 @@
-% FILE: src/utils/review_eeg_simple.m
 
 function EEG = review_eeg_simple(subject_id, stage, config, pipeline_type)
-    % REVIEW_EEG_SIMPLE - Simplified EEG data review function
+    % REVIEW_EEG_SIMPLE - Interactive EEG data review and visualization tool
     %
-    % A simpler version of review_eeg_data that avoids EEGLAB workspace issues
-    % by directly opening the plotting functions without managing ALLEEG.
+    % REVIEW_EEG_SIMPLE loads and displays EEG data from any processing stage
+    % with interactive plotting capabilities. This simplified version avoids 
+    % EEGLAB workspace conflicts while providing comprehensive data inspection.
     %
     % Syntax: 
     %   EEG = review_eeg_simple(subject_id, stage, config)
@@ -12,19 +12,58 @@ function EEG = review_eeg_simple(subject_id, stage, config, pipeline_type)
     %
     % Inputs:
     %   subject_id    - String, subject identifier (e.g., 'CS_05_16_1')
-    %   stage         - String, processing stage to load:
-    %                   'raw', 'preprocessed', 'preprocessed_1hz', 'ica', 
-    %                   'components_rejected', 'epoched', 'artifacts_rejected', 'final'
+    %   stage         - String, processing stage to review:
+    %                   'raw'                - Raw .bdf data
+    %                   'preprocessed'       - Filtered, re-referenced data (0.1Hz)
+    %                   'preprocessed_1hz'   - Filtered, re-referenced data (1Hz) [EEGLAB only]
+    %                   'ica'                - Preprocessed data with ICA weights applied [EEGLAB only]
+    %                   'components_rejected'- Data after ICA component removal [EEGLAB only]
+    %                   'epoched'            - Segmented data around events
+    %                   'artifacts_rejected' - Final clean data (epochs removed)
+    %                   'final'              - Analysis-ready datasets
     %   config        - Configuration structure from default_config()
-    %   pipeline_type - Optional string, 'eeglab' (default) or 'erplab'
-    %                   Note: Some stage/pipeline combinations are invalid:
-    %                   - 'preprocessed_1hz', 'ica', 'components_rejected' only work with 'eeglab'
-    %                   - 'epoched', 'artifacts_rejected' work with both but load different files
+    %   pipeline_type - Optional string, processing pipeline:
+    %                   'eeglab' (default) - Uses EEGLAB-based processing files
+    %                   'erplab'          - Uses ERPLAB-based processing files
+    %
+    % Outputs:
+    %   EEG           - EEGLAB structure containing the loaded dataset
+    %
+    % Pipeline Compatibility:
+    %   EEGLAB Pipeline: All stages supported
+    %   ERPLAB Pipeline: 'raw', 'preprocessed', 'epoched', 'artifacts_rejected', 'final'
+    %
+    % Interactive Features:
+    %   - Automatic data information display (channels, sampling rate, events)
+    %   - Opens eegplot() for continuous data scrolling and inspection
+    %   - For epoched data: Shows rejected trials highlighted in light green
+    %   - For artifact-rejected data: Shows clean epochs only
+    %   - Optional ICA component review interface
+    %   - Works with both EEGLAB and ERPLAB artifact rejection markers
     %
     % Examples:
-    %   EEG = review_eeg_simple('CS_05_16_1', 'preprocessed', config);
-    %   EEG = review_eeg_simple('CS_05_16_1', 'preprocessed_1hz', config);
-    %   EEG = review_eeg_simple('CS_05_16_1', 'epoched', config, 'erplab');
+    %   % Review preprocessed data (default EEGLAB pipeline)
+    %   config = default_config();
+    %   EEG = review_eeg_simple('elaine', 'preprocessed', config);
+    %
+    %   % Review 1Hz variant (EEGLAB only)
+    %   EEG = review_eeg_simple('jerry', 'preprocessed_1hz', config);
+    %
+    %   % Review ERPLAB epoched data with rejection markers
+    %   EEG = review_eeg_simple('george', 'epoched', config, 'erplab');
+    %
+    %   % Review final clean data
+    %   EEG = review_eeg_simple('kramer', 'artifacts_rejected', config, 'erplab');
+    %
+    % Notes:
+    %   - Initializes EEGLAB automatically if not already running
+    %   - Uses space-efficient ICA weight loading for 'ica' stage
+    %   - Supports both manual rejection markers (EEGLAB) and ERPLAB rejection flags
+    %   - Close plot windows when finished to free memory
+    %
+    % See also: review_eeg_data, load_eeg_from_stage, load_ica_weights, default_config
+    % 
+    % Author: Matt Kmiecik
 
     % Handle optional inputs
     if nargin < 4 || isempty(pipeline_type)

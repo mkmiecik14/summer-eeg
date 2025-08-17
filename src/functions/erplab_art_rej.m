@@ -1,7 +1,128 @@
-% FILE: src/functions/erplab_art_rej.m
-
 function [success, EEG] = erplab_art_rej(subject_id, config)
-    % ERPLAB_ART_REJ - ERPLAB-based artifact rejection from preprocessed data
+    % ERPLAB_ART_REJ - Advanced 5-step ERPLAB artifact rejection pipeline
+    %
+    % ERPLAB_ART_REJ performs comprehensive artifact rejection on preprocessed
+    % EEG data using ERPLAB's advanced artifact detection algorithms. Implements
+    % a 5-step detection process for extreme values, peak-to-peak variations,
+    % step-like artifacts, linear trends, and flatline detection with physical
+    % epoch removal and detailed reporting.
+    %
+    % Syntax: 
+    %   [success, EEG] = erplab_art_rej(subject_id, config)
+    %
+    % Inputs:
+    %   subject_id - String, subject identifier (e.g., 'helen')
+    %   config     - Configuration structure from default_config() containing:
+    %                .dirs.preprocessed      - Preprocessed data directory
+    %                .dirs.epoched          - Epoched data output directory
+    %                .dirs.artifacts_rejected - Clean data output directory
+    %                .erplab_dir            - ERPLAB toolbox path
+    %                .event_codes           - Event codes for epoching
+    %                .naming                - File naming conventions
+    %                .erplab_art_rej        - Artifact rejection parameters:
+    %                  .epoch_window        - Epoching time window [start end] (s)
+    %                  .baseline_window     - Baseline correction window (s)
+    %                  .extreme_values_threshold     - Extreme value threshold (µV)
+    %                  .peak_to_peak_threshold       - Peak-to-peak threshold (µV)
+    %                  .peak_to_peak_window_size     - Moving window size (ms)
+    %                  .peak_to_peak_window_step     - Moving window step (ms)
+    %                  .step_threshold               - Step artifact threshold (µV)
+    %                  .step_window_size             - Step detection window (ms)
+    %                  .step_window_step             - Step detection step (ms)
+    %                  .trend_min_slope              - Linear trend slope threshold
+    %                  .trend_min_r2                 - Linear trend R² threshold
+    %
+    % Outputs:
+    %   success - Logical, true if artifact rejection completed successfully
+    %   EEG     - Final EEGLAB EEG structure with physically removed epochs
+    %
+    % Processing Pipeline:
+    %   1. Load ERPLAB preprocessed data from stage directory
+    %   2. Create ERPLAB eventlist with boundary handling
+    %   3. Create epochs around specified event codes
+    %   4. Apply baseline correction
+    %   5. Run 5-step artifact detection (flagging only)
+    %   6. Synchronize rejection flags between ERPLAB and EEGLAB
+    %   7. Save epoched data with rejection markers
+    %   8. Physically remove flagged epochs
+    %   9. Save final clean data
+    %   10. Generate comprehensive rejection report
+    %
+    % 5-Step Artifact Detection:
+    %   Step 1: Extreme Values
+    %     - Detects absolute amplitudes > threshold (±100 µV default)
+    %     - Applied across entire epoch time window
+    %
+    %   Step 2: Peak-to-Peak in Moving Windows
+    %     - Detects excessive peak-to-peak variations (±75 µV default)
+    %     - Uses overlapping windows (200ms window, 100ms step default)
+    %
+    %   Step 3: Step-like Artifacts
+    %     - Detects sudden amplitude steps (±60 µV default)
+    %     - Uses smaller windows (250ms window, 20ms step default)
+    %
+    %   Step 4: Linear Trends
+    %     - Detects excessive linear trends across epochs
+    %     - Thresholds: slope >75, R² >0.3 (default)
+    %
+    %   Step 5: Flatline Detection
+    %     - Detects completely flat/dead channels
+    %     - Uses 0 µV threshold for complete flatline
+    %
+    % ERPLAB Integration:
+    %   - Uses pop_creabasiceventlist() for eventlist creation
+    %   - Handles boundary events (-99) automatically
+    %   - Synchronizes flags between ERPLAB and EEGLAB systems
+    %   - Compatible with ERPLAB GUI workflow
+    %
+    % Physical Epoch Removal:
+    %   - NEW: Actually removes flagged epochs using pop_rejepoch()
+    %   - Previous versions only flagged epochs
+    %   - Final dataset contains only clean epochs
+    %   - Enables accurate trial counting for analysis
+    %
+    % Examples:
+    %   % Run ERPLAB artifact rejection on preprocessed data
+    %   config = default_config();
+    %   [success, EEG] = erplab_art_rej('morty', config);
+    %
+    %   % Complete ERPLAB workflow
+    %   [success1, EEG_prepro] = erplab_prepro('helen', config);
+    %   if success1
+    %       [success2, EEG_clean] = erplab_art_rej('helen', config);
+    %   end
+    %
+    %   % Batch processing workflow
+    %   run_erplab_preprocessing;      % Step 1: Time-intensive filtering
+    %   run_erplab_artifact_rejection; % Step 2: Fast artifact rejection
+    %
+    % Output Files:
+    %   - Epoched with markers: output/05_epoched/[subject]-epochs-erplab.set
+    %   - Final clean data: output/06_artifacts_rejected/[subject]-art-rej-erplab.set
+    %   - Rejection report: output/quality_control/individual_reports/
+    %
+    % Quality Control:
+    %   - Detailed rejection statistics and rates
+    %   - Method-specific parameters logged
+    %   - Individual subject reports with timestamps
+    %   - Compatible with batch processing summaries
+    %
+    % Error Handling:
+    %   - ERPLAB function availability verification
+    %   - Comprehensive error logging with method identification
+    %   - Missing file detection and informative messages
+    %   - Processing continues with other subjects on failures
+    %
+    % Notes:
+    %   - Requires ERPLAB-preprocessed data from erplab_prepro()
+    %   - More sophisticated than simple amplitude thresholding
+    %   - Optimized for ERP analysis with multiple detection criteria
+    %   - Fast execution after time-intensive preprocessing
+    %   - Physically removes epochs (vs just flagging)
+    %
+    % See also: erplab_prepro, pop_artextval, pop_artmwppth, pop_rejepoch, pop_syncroartifacts
+    %
+    % Author: Matt Kmiecik
     
     success = false;
     EEG = [];

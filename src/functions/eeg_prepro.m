@@ -1,7 +1,96 @@
-% FILE: src/functions/eeg_prepro.m (Updated for stage-based saving)
-
 function [success, EEG_01Hz, EEG_1Hz] = eeg_prepro(subject_id, config)
-    % PROCESS_SUBJECT_PREPROCESSING - Preprocess EEG data with stage-based saving
+    % EEG_PREPRO - Comprehensive EEGLAB-based EEG preprocessing pipeline
+    %
+    % EEG_PREPRO performs complete EEG preprocessing from raw .bdf files through
+    % filtered, re-referenced, and cleaned datasets. Creates both 0.1Hz and 1Hz
+    % high-pass filtered variants optimized for different analysis needs with
+    % integrated quality control and stage-based output organization.
+    %
+    % Syntax: 
+    %   [success, EEG_01Hz, EEG_1Hz] = eeg_prepro(subject_id, config)
+    %
+    % Inputs:
+    %   subject_id - String, subject identifier (e.g., 'newman')
+    %   config     - Configuration structure from default_config() containing:
+    %                .data_dir            - Raw data directory path
+    %                .doc_dir            - Channel info and documentation path
+    %                .dirs               - Stage-based output directories
+    %                .external_channels  - Channels to remove (EXG1-8)
+    %                .channels_to_keep   - Channels to retain (A1-32, B1-32)
+    %                .sampling_rate      - Target sampling rate (Hz)
+    %                .reference_channels - Re-reference channel indices
+    %                .highpass_01hz      - 0.1Hz filter cutoff
+    %                .highpass_1hz       - 1Hz filter cutoff
+    %                .cleanline          - Line noise removal parameters
+    %                .enable_quality_control - QC assessment toggle
+    %
+    % Outputs:
+    %   success   - Logical, true if preprocessing completed successfully
+    %   EEG_01Hz  - EEGLAB EEG structure with 0.1Hz high-pass filter
+    %   EEG_1Hz   - EEGLAB EEG structure with 1Hz high-pass filter
+    %
+    % Processing Pipeline:
+    %   1. Load raw .bdf data using BIOSIG toolbox
+    %   2. Remove external channels (EXG1-8)
+    %   3. Select standard 64-channel EEG montage (A1-32, B1-32)
+    %   4. Configure channel locations and reference settings
+    %   5. Downsample to target sampling rate (256 Hz)
+    %   6. Re-reference to linked mastoids (keep reference)
+    %   7. Apply dual high-pass filtering (0.1Hz and 1Hz)
+    %   8. Remove 60Hz line noise using CleanLine
+    %   9. Save both filtered versions to stage directories
+    %   10. Run quality control assessment (optional)
+    %
+    % Filter Variants:
+    %   0.1Hz High-pass: Optimal for epoching and time-domain analysis
+    %   1Hz High-pass:   Optimal for ICA decomposition and source separation
+    %
+    % Channel Configuration:
+    %   - Uses standardized 64-channel montage (10-20 system)
+    %   - Loads channel locations from chan_locs_nose_along_fixed.mat
+    %   - Loads channel info from chan_info_nose_along_fixed.mat
+    %   - Reference set to Fp1, re-referenced to average mastoids
+    %
+    % Data Quality:
+    %   - Automatic quality control with comprehensive metrics
+    %   - Visual quality reports (if config.generate_reports = true)
+    %   - Quality scores and problematic channel detection
+    %   - Reports saved to quality_control/individual_reports/
+    %
+    % Examples:
+    %   % Run complete preprocessing pipeline
+    %   config = default_config();
+    %   [success, EEG_01Hz, EEG_1Hz] = eeg_prepro('frank', config);
+    %
+    %   % Check processing success and access results
+    %   if success
+    %       fprintf('Preprocessing completed\n');
+    %       fprintf('0.1Hz data: %d channels, %.1f Hz\n', EEG_01Hz.nbchan, EEG_01Hz.srate);
+    %       fprintf('1Hz data: %d channels, %.1f Hz\n', EEG_1Hz.nbchan, EEG_1Hz.srate);
+    %   end
+    %
+    % Error Handling:
+    %   - Comprehensive error logging to output/logs/error_logs/
+    %   - Missing file detection with informative error messages
+    %   - Processing continues with other subjects on individual failures
+    %   - Error structures saved with timestamps for debugging
+    %
+    % File Requirements:
+    %   - Raw data: [subject_id].bdf in data/ directory
+    %   - Channel locations: doc/chan_locs_nose_along_fixed.mat
+    %   - Channel info: doc/chan_info_nose_along_fixed.mat
+    %   - Output directories created automatically if needed
+    %
+    % Notes:
+    %   - Creates both 0.1Hz and 1Hz variants for different analysis needs
+    %   - Uses BIOSIG toolbox for .bdf file loading
+    %   - Applies consistent preprocessing across all subjects
+    %   - Stage-based organization for systematic workflow
+    %   - Memory-efficient with automatic cleanup
+    %
+    % See also: pop_biosig, pop_reref, apply_cleanline_to_eeg, save_eeg_to_stage, run_quality_control
+    %
+    % Author: Matt Kmiecik
     
     success = false;
     EEG_01Hz = [];

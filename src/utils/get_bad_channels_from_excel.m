@@ -1,19 +1,53 @@
-% FILE: src/utils/get_bad_channels_from_excel.m (Updated for new config structure)
-
 function bad_channels = get_bad_channels_from_excel(subject_id, config)
-    % GET_BAD_CHANNELS_FROM_EXCEL - Load bad channel info from Excel file
+    % GET_BAD_CHANNELS_FROM_EXCEL - Extract bad channel information from Excel database
     %
-    % Loads participant information from ss-info.xlsx and extracts
-    % bad channel information for the specified subject.
+    % GET_BAD_CHANNELS_FROM_EXCEL loads participant information from the Excel
+    % database (ss-info.xlsx) and extracts bad channel indices for the specified
+    % subject. This function handles various data formats and provides robust
+    % error handling for missing or malformed channel information.
     %
-    % Syntax: bad_channels = get_bad_channels_from_excel(subject_id, config)
+    % Syntax: 
+    %   bad_channels = get_bad_channels_from_excel(subject_id, config)
     %
     % Inputs:
-    %   subject_id - String, subject identifier
-    %   config     - Configuration structure
+    %   subject_id - String, subject identifier (e.g., 'elaine')
+    %   config     - Configuration structure from default_config() containing:
+    %                .doc_dir - Path to documentation directory with ss-info.xlsx
     %
     % Outputs:
-    %   bad_channels - Vector of bad channel indices, or empty if none
+    %   bad_channels - Vector of bad channel indices (e.g., [5 12 31])
+    %                  Returns empty array [] if no bad channels found
+    %
+    % Excel File Format:
+    %   Column 1: Subject IDs (string identifiers)
+    %   Column 2: Bad channel information (various formats supported):
+    %             - Numeric array: [5 12 31]
+    %             - String format: "5 12 31" or "5,12,31"
+    %             - Empty/NaN: No bad channels
+    %
+    % Error Handling:
+    %   - Returns empty array and warning if subject not found
+    %   - Returns empty array and warning if Excel file cannot be read
+    %   - Handles both string and numeric bad channel specifications
+    %   - Gracefully processes empty or NaN entries
+    %
+    % Example:
+    %   % Get bad channels for subject preprocessing
+    %   config = default_config();
+    %   bad_chans = get_bad_channels_from_excel('jerry', config);
+    %   if ~isempty(bad_chans)
+    %       EEG = pop_select(EEG, 'nochannel', bad_chans);
+    %   end
+    %
+    % Notes:
+    %   - Automatically converts string representations to numeric arrays
+    %   - Prints found bad channels to console for verification
+    %   - Used during preprocessing to exclude problematic channels
+    %   - Excel file must be in documentation directory specified by config
+    %
+    % See also: xlsread, default_config, pop_select, eeg_prepro
+    %
+    % Author: Matt Kmiecik
 
     try
         % Load participant information

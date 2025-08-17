@@ -1,21 +1,96 @@
-% FILE: src/utils/run_quality_control.m (Updated for stage-based organization)
-
 function [EEG, quality_report] = run_quality_control(EEG, subject_id, config)
-    % RUN_QUALITY_CONTROL - Comprehensive quality control assessment
+    % RUN_QUALITY_CONTROL - Comprehensive EEG data quality assessment and reporting
     %
-    % Performs quality control checks and generates reports with
-    % stage-appropriate output locations.
+    % RUN_QUALITY_CONTROL performs automated quality control analysis on EEG
+    % datasets, generating detailed metrics, visual reports, and quality scores.
+    % Assesses amplitude characteristics, channel-wise quality, frequency domain
+    % properties, and overall data integrity with configurable reporting.
     %
-    % Syntax: [EEG, quality_report] = run_quality_control(EEG, subject_id, config)
+    % Syntax: 
+    %   [EEG, quality_report] = run_quality_control(EEG, subject_id, config)
     %
     % Inputs:
-    %   EEG        - EEG structure to assess
-    %   subject_id - String, subject identifier  
-    %   config     - Configuration structure
+    %   EEG        - EEGLAB EEG structure to assess (any processing stage)
+    %   subject_id - String, subject identifier (e.g., 'elaine')
+    %   config     - Configuration structure from default_config() containing:
+    %                .generate_reports - Enable/disable visual report generation
+    %                .dirs.quality_control - Quality control output directory
     %
     % Outputs:
-    %   EEG            - EEG structure (unchanged)
-    %   quality_report - Structure with quality metrics
+    %   EEG            - EEGLAB EEG structure (unchanged, passed through)
+    %   quality_report - Comprehensive quality metrics structure containing:
+    %                    .subject_id       - Subject identifier
+    %                    .timestamp        - Analysis timestamp
+    %                    .processing_stage - Current processing stage
+    %                    .data_size        - Data matrix dimensions
+    %                    .sampling_rate    - Sampling frequency
+    %                    .duration_seconds - Recording duration
+    %                    .n_channels       - Number of channels
+    %                    .amplitude.*      - Amplitude statistics (mean, std, max, min, range)
+    %                    .channels.*       - Channel-wise quality metrics and problematic channels
+    %                    .power.*          - Frequency band power analysis
+    %                    .overall_score    - Composite quality score (0-100)
+    %
+    % Quality Assessment Metrics:
+    %   Amplitude Analysis:
+    %     - Mean, standard deviation, maximum, minimum, and range
+    %     - Extreme amplitude detection (>200 µV penalty)
+    %
+    %   Channel Quality:
+    %     - Channel-wise variance analysis
+    %     - High variance channel detection (z-score > 3)
+    %     - Low variance/flat channel detection (z-score < -3, variance < 0.1)
+    %
+    %   Frequency Domain:
+    %     - Power spectral density analysis
+    %     - Frequency band power (delta, theta, alpha, beta, gamma)
+    %     - Line noise assessment (58-62 Hz)
+    %     - Line noise ratio calculation and penalty (>10% penalty)
+    %
+    %   Quality Scoring:
+    %     - Starts at 100 points
+    %     - Deductions: 5 pts per high-variance channel, 10 pts per flat channel
+    %     - Additional penalties for extreme amplitudes and excessive line noise
+    %     - Score range: 0-100 (higher is better)
+    %
+    % Visual Reports (if config.generate_reports = true):
+    %   6-panel quality control plot including:
+    %   1. Channel variances with problematic channels highlighted
+    %   2. Power spectral density (0-100 Hz)
+    %   3. Sample EEG traces (first 5 channels)
+    %   4. Amplitude distribution histogram
+    %   5. Frequency band power comparison
+    %   6. Summary statistics and quality score
+    %
+    % Examples:
+    %   % Basic quality control assessment
+    %   config = default_config();
+    %   [EEG, qc] = run_quality_control(EEG, 'jerry', config);
+    %   
+    %   % Check quality score
+    %   if qc.overall_score < 70
+    %       fprintf('Subject needs attention: score = %.1f\n', qc.overall_score);
+    %   end
+    %
+    %   % Identify problematic channels
+    %   bad_chans = [qc.channels.high_variance; qc.channels.flat_channels];
+    %
+    % Error Handling:
+    %   - Graceful handling of quality control failures
+    %   - Warning messages for analysis errors
+    %   - Returns error information in quality_report.error field
+    %   - Sets quality score to 0 on complete failure
+    %
+    % Notes:
+    %   - Quality plots saved to: output/quality_control/plots/
+    %   - Warning displayed for quality scores < 70
+    %   - Processing stage automatically detected as 'preprocessing'
+    %   - Compatible with continuous and epoched EEG data
+    %   - Uses pwelch() for robust power spectral density estimation
+    %
+    % See also: pwelch, zscore, default_config, save_eeg_to_stage
+    %
+    % Author: Matt Kmiecik
 
     quality_report = struct();
     quality_report.subject_id = subject_id;

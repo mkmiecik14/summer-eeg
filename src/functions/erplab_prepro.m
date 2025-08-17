@@ -1,7 +1,98 @@
-% FILE: src/functions/erplab_prepro.m
-
 function [success, EEG] = erplab_prepro(subject_id, config)
-    % ERPLAB_PREPRO - ERPLAB-based preprocessing up to baseline correction
+    % ERPLAB_PREPRO - ERPLAB-compatible preprocessing pipeline up to baseline correction
+    %
+    % ERPLAB_PREPRO performs EEG preprocessing using ERPLAB-compatible workflow
+    % from raw .bdf files through filtered and re-referenced data. Creates
+    % preprocessed datasets optimized for subsequent ERPLAB artifact rejection
+    % with time-efficient filtering and standardized channel configuration.
+    %
+    % Syntax: 
+    %   [success, EEG] = erplab_prepro(subject_id, config)
+    %
+    % Inputs:
+    %   subject_id - String, subject identifier (e.g., 'estelle')
+    %   config     - Configuration structure from default_config() containing:
+    %                .data_dir                    - Raw data directory path
+    %                .doc_dir                    - Channel documentation path
+    %                .dirs.preprocessed          - Preprocessed output directory
+    %                .erplab_dir                 - ERPLAB toolbox path
+    %                .external_channels          - Channels to remove (EXG1-8)
+    %                .channels_to_keep           - Standard EEG channels (A1-32, B1-32)
+    %                .reference_channels         - Mastoid reference indices
+    %                .erplab_art_rej.resample_rate   - Target sampling rate
+    %                .erplab_art_rej.highpass_filter - High-pass cutoff (Hz)
+    %                .erplab_art_rej.lowpass_filter  - Low-pass cutoff (Hz)
+    %                .naming.preprocessed_erplab - ERPLAB naming convention
+    %
+    % Outputs:
+    %   success - Logical, true if preprocessing completed successfully
+    %   EEG     - EEGLAB EEG structure with ERPLAB-compatible preprocessing
+    %
+    % Processing Pipeline:
+    %   1. Load raw .bdf data using BIOSIG toolbox
+    %   2. Remove external channels (EXG1-8)
+    %   3. Select standard 64-channel EEG montage
+    %   4. Configure channel locations and reference settings
+    %   5. Resample to target rate (typically 256 Hz)
+    %   6. Apply band-pass filter (0.01-30 Hz default)
+    %   7. Re-reference to average mastoids
+    %   8. Save with ERPLAB naming convention
+    %
+    % ERPLAB Integration:
+    %   - Automatically adds ERPLAB to MATLAB path
+    %   - Verifies ERPLAB function availability
+    %   - Uses ERPLAB-compatible data format
+    %   - Prepares data for ERPLAB artifact rejection workflow
+    %   - Saves with erplab suffix for identification
+    %
+    % Filter Settings:
+    %   - High-pass: 0.01 Hz (removes slow drifts, preserves ERPs)
+    %   - Low-pass: 30 Hz (reduces high-frequency noise)
+    %   - Time-efficient filtering optimized for ERPLAB workflow
+    %   - Single filtering pass (vs dual 0.1Hz/1Hz in EEGLAB pipeline)
+    %
+    % Channel Configuration:
+    %   - Standard 64-channel 10-20 system montage
+    %   - Removes external channels (EXG1-8) automatically
+    %   - Loads standardized channel locations and info
+    %   - Sets reference to Fp1, re-references to average mastoids
+    %
+    % Examples:
+    %   % Run ERPLAB preprocessing only
+    %   config = default_config();
+    %   [success, EEG] = erplab_prepro('morty', config);
+    %
+    %   % Follow with ERPLAB artifact rejection
+    %   if success
+    %       [success_art, EEG_clean] = erplab_art_rej('morty', config);
+    %   end
+    %
+    %   % Split workflow for time efficiency
+    %   run_erplab_preprocessing;      % Batch preprocessing (time-intensive)
+    %   run_erplab_artifact_rejection; % Batch artifact rejection (fast)
+    %
+    % Error Handling:
+    %   - Comprehensive try-catch with ERPLAB-specific error logging
+    %   - ERPLAB function availability checking
+    %   - Missing file detection and informative error messages
+    %   - Error files saved to: output/logs/error_logs/
+    %
+    % Performance:
+    %   - Time-intensive filtering step separated from artifact rejection
+    %   - Enables split workflow for computational efficiency
+    %   - Single filter pass reduces processing time
+    %   - Optimized for batch processing scenarios
+    %
+    % Notes:
+    %   - Alternative to eeg_prepro() using ERPLAB workflow
+    %   - Designed for time-efficient split processing
+    %   - Creates single filtered variant (not dual like EEGLAB)
+    %   - Compatible with erplab_art_rej() for subsequent processing
+    %   - Requires ERPLAB plugin installation in EEGLAB
+    %
+    % See also: erplab_art_rej, eeg_prepro, pop_biosig, pop_reref, run_erplab_preprocessing
+    %
+    % Author: Matt Kmiecik
     
     success = false;
     EEG = [];

@@ -1,25 +1,59 @@
-% FILE: src/utils/load_ica_weights.m
-
 function EEG = load_ica_weights(EEG, subject_id, config)
-    % LOAD_ICA_WEIGHTS - Load ICA weights and apply to EEG structure
+    % LOAD_ICA_WEIGHTS - Apply space-efficient ICA decomposition to EEG data
     %
-    % This function loads the lightweight ICA weights file and applies the
-    % ICA decomposition to the provided EEG structure. This allows you to
-    % transfer ICA weights from one dataset to another without storing
-    % the full ICA dataset.
+    % LOAD_ICA_WEIGHTS loads pre-computed ICA weights from lightweight .mat files
+    % and applies the complete ICA decomposition to the target EEG structure.
+    % This space-efficient approach saves 95%+ disk space compared to storing
+    % full ICA datasets while maintaining complete functionality.
     %
-    % Syntax: EEG = load_ica_weights(EEG, subject_id, config)
+    % Syntax: 
+    %   EEG = load_ica_weights(EEG, subject_id, config)
     %
     % Inputs:
-    %   EEG        - Target EEG structure to apply ICA weights to
-    %   subject_id - String, subject identifier
-    %   config     - Configuration structure
+    %   EEG        - Target EEGLAB EEG structure to receive ICA decomposition
+    %   subject_id - String, subject identifier (e.g., 'kramer')
+    %   config     - Configuration structure from default_config() containing:
+    %                .dirs.ica    - ICA weights directory path
+    %                .naming.ica  - ICA filename pattern
     %
     % Outputs:
-    %   EEG - EEG structure with ICA weights applied
+    %   EEG - EEGLAB EEG structure with complete ICA decomposition applied:
+    %         .icaweights  - ICA unmixing matrix
+    %         .icasphere   - Sphering matrix
+    %         .icawinv     - ICA mixing matrix (inverse weights)
+    %         .icachansind - Channel indices used for ICA
+    %         .chanlocs    - Matching channel locations (if compatible)
+    %         .etc.ica_weights_source - Metadata about ICA source
     %
-    % The function validates channel consistency and applies the ICA
-    % decomposition matrices to the target dataset.
+    % ICA Weights File Contains:
+    %   - icaweights, icasphere, icawinv matrices
+    %   - Channel information and compatibility data
+    %   - Processing metadata (timestamp, data rank, bad channels)
+    %   - Quality control information
+    %
+    % Validation:
+    %   - Channel count compatibility between target EEG and ICA data
+    %   - Sampling rate compatibility (warns if different)
+    %   - ICA matrix dimension consistency
+    %   - Channel index bounds checking
+    %
+    % Example:
+    %   % Apply ICA weights to preprocessed data for component analysis
+    %   config = default_config();
+    %   [EEG, ~] = load_eeg_from_stage('morty', 'preprocessed', config);
+    %   EEG = load_ica_weights(EEG, 'morty', config);
+    %   pop_selectcomps(EEG, [1:35]); % Review first 35 components
+    %
+    % Notes:
+    %   - ICA weights files are ~1-5MB vs ~100+MB for full ICA datasets
+    %   - Clears existing icaact (activations recomputed when needed)
+    %   - Preserves target EEG channel locations if incompatible
+    %   - Stores source metadata for traceability
+    %   - Works with any compatible EEG dataset (same channel count/type)
+    %
+    % See also: save_ica_weights, eeg_ica, pop_selectcomps, load_eeg_from_stage
+    %
+    % Author: Matt Kmiecik
     
     % Construct filename for ICA weights
     dataset_name = sprintf(config.naming.ica, subject_id);

@@ -1,7 +1,137 @@
-% FILE: src/config/default_config.m (Updated with stage-based directories)
-
 function config = default_config()
-    % DEFAULT_CONFIG - Configuration with stage-based output directories
+    % DEFAULT_CONFIG - Centralized configuration management for EEG processing pipeline
+    %
+    % DEFAULT_CONFIG creates a comprehensive configuration structure containing
+    % all parameters, paths, and settings for the stage-based EEG preprocessing
+    % pipeline. Provides centralized management of processing parameters,
+    % directory organization, naming conventions, and quality control settings.
+    %
+    % Syntax: 
+    %   config = default_config()
+    %
+    % Inputs:
+    %   None
+    %
+    % Outputs:
+    %   config - Comprehensive configuration structure containing:
+    %            .main_dir      - Project root directory (current working directory)
+    %            .data_dir      - Raw data directory (data/)
+    %            .doc_dir       - Documentation directory (doc/)
+    %            .output_dir    - Main output directory (output/)
+    %            .eeglab_dir    - EEGLAB installation path (auto-detected)
+    %            .erplab_dir    - ERPLAB plugin path
+    %            .dirs          - Stage-based output directories
+    %            .naming        - Standardized filename patterns
+    %            .cleanline     - Line noise removal parameters
+    %            .ica_rejection - ICA component rejection thresholds
+    %            .erplab_art_rej - ERPLAB artifact rejection parameters
+    %            Processing parameters and quality control options
+    %
+    % Stage-Based Directory Structure:
+    %   .dirs.raw                 - output/01_raw/
+    %   .dirs.preprocessed        - output/02_preprocessed/
+    %   .dirs.ica                 - output/03_ica/
+    %   .dirs.components_rejected - output/04_components_rejected/
+    %   .dirs.epoched             - output/05_epoched/
+    %   .dirs.artifacts_rejected  - output/06_artifacts_rejected/
+    %   .dirs.final               - output/07_final/
+    %   .dirs.quality_control     - output/quality_control/
+    %   .dirs.logs                - output/logs/
+    %   .dirs.derivatives         - output/derivatives/
+    %
+    % File Naming Conventions:
+    %   EEGLAB Pipeline:
+    %     preprocessed_01hz: '[subject]-prepro'
+    %     preprocessed_1hz:  '[subject]-prepro-1Hz'
+    %     ica:              '[subject]-ica-1Hz'
+    %     components_rejected: '[subject]-clean'
+    %     epoched:          '[subject]-epochs'
+    %     artifacts_rejected: '[subject]-art-rej'
+    %
+    %   ERPLAB Pipeline:
+    %     preprocessed_erplab:      '[subject]-prepro-erplab'
+    %     epoched_erplab:           '[subject]-epochs-erplab'
+    %     artifacts_rejected_erplab: '[subject]-art-rej-erplab'
+    %
+    % Processing Parameters:
+    %   Channel Configuration:
+    %     - external_channels: EXG1-8 (removed during preprocessing)
+    %     - channels_to_keep: A1-32, B1-32 (64-channel standard montage)
+    %     - reference_channels: [24 61] (average mastoids)
+    %
+    %   Temporal Parameters:
+    %     - sampling_rate: 256 Hz (target after resampling)
+    %     - highpass_01hz: 0.1 Hz (EEGLAB epoching filter)
+    %     - highpass_1hz: 1 Hz (EEGLAB ICA filter)
+    %     - epoch_window: [-0.2 1] s (200ms pre, 1000ms post)
+    %     - baseline_window: [-0.2 0] s (pre-stimulus baseline)
+    %     - amplitude_threshold: 100 µV (EEGLAB artifact rejection)
+    %
+    %   Event Codes:
+    %     - event_codes: {'111','112','221','222'} (stimulus/response events)
+    %
+    % ERPLAB Artifact Rejection:
+    %   Advanced 5-step detection with configurable thresholds:
+    %   - extreme_values_threshold: ±100 µV
+    %   - peak_to_peak_threshold: ±75 µV (200ms windows, 100ms steps)
+    %   - step_threshold: ±60 µV (250ms windows, 20ms steps)
+    %   - trend detection: slope >75, R² >0.3
+    %   - flatline detection: 0 µV threshold
+    %
+    % CleanLine Parameters:
+    %   Optimized for 60Hz US line noise removal:
+    %   - linefreqs: 60 Hz target frequency
+    %   - bandwidth: 2 Hz removal bandwidth
+    %   - winsize: 4 s analysis windows
+    %   - winstep: 1 s window overlap
+    %   - Additional parameters for signal detection and processing
+    %
+    % ICA Component Rejection:
+    %   ICLabel probability thresholds:
+    %   - muscle_threshold: 0.8 (muscle artifact rejection)
+    %   - eye_threshold: 0.8 (eye artifact rejection)
+    %   - Brain components preserved (NaN thresholds)
+    %
+    % Examples:
+    %   % Get default configuration
+    %   config = default_config();
+    %
+    %   % Use with preprocessing
+    %   [success, EEG_01, EEG_1] = eeg_prepro('elaine', config);
+    %
+    %   % Use with ERPLAB workflow
+    %   [success, EEG] = erplab_prepro('jerry', config);
+    %   [success, EEG] = erplab_art_rej('jerry', config);
+    %
+    %   % Setup directories
+    %   setup_output_directories(config);
+    %
+    %   % Modify parameters
+    %   config.amplitude_threshold = 75; % Change threshold
+    %   config.erplab_art_rej.extreme_values_threshold = 80;
+    %
+    % Quality Control Options:
+    %   - enable_quality_control: true (run QC assessments)
+    %   - generate_reports: true (create visual QC plots)
+    %   - save_intermediate_files: true (save processing stages)
+    %   - create_directories: true (auto-create output structure)
+    %
+    % Path Detection:
+    %   - Automatically detects EEGLAB installation path
+    %   - Sets ERPLAB path based on EEGLAB plugin directory
+    %   - Uses current working directory as project root
+    %   - May require manual ERPLAB path adjustment for custom installations
+    %
+    % Notes:
+    %   - Central configuration ensures consistency across all functions
+    %   - Supports both EEGLAB and ERPLAB processing workflows
+    %   - Parameters optimized for 64-channel EEG with 256Hz sampling
+    %   - Paths assume standard project directory structure
+    %   - Easily customizable for different experimental setups
+    %
+    % See also: setup_output_directories, eeg_prepro, erplab_prepro, apply_cleanline_to_eeg
+    %
+    % Author: Matt Kmiecik
     
     config = struct();
     

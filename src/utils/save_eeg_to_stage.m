@@ -1,26 +1,79 @@
-% FILE: src/utils/save_eeg_to_stage.m
-
 function EEG = save_eeg_to_stage(EEG, subject_id, stage, config, variant)
-    % SAVE_EEG_TO_STAGE - Save EEG data to appropriate stage directory
+    % SAVE_EEG_TO_STAGE - Save EEG data using stage-based directory organization
     %
-    % Saves EEG data to the correct stage directory with proper naming
-    % conventions. Handles both standard stages and variants.
+    % SAVE_EEG_TO_STAGE saves EEG datasets to the appropriate processing stage
+    % directory using standardized naming conventions and directory structure.
+    % Automatically handles directory creation, filename generation, and
+    % workspace management for the stage-based processing pipeline.
     %
-    % Syntax: EEG = save_eeg_to_stage(EEG, subject_id, stage, config, variant)
+    % Syntax: 
+    %   EEG = save_eeg_to_stage(EEG, subject_id, stage, config)
+    %   EEG = save_eeg_to_stage(EEG, subject_id, stage, config, variant)
     %
     % Inputs:
-    %   EEG        - EEG structure to save
-    %   subject_id - String, subject identifier
-    %   stage      - String, processing stage ('preprocessed', 'ica', etc.)
-    %   config     - Configuration structure
-    %   variant    - String, optional variant suffix (e.g., '1Hz')
+    %   EEG        - EEGLAB EEG structure to save
+    %   subject_id - String, subject identifier (e.g., 'kramer')
+    %   stage      - String, target processing stage:
+    %                'preprocessed'        - Filtered, re-referenced data
+    %                'ica'                 - ICA decomposition results
+    %                'components_rejected' - Data after component removal
+    %                'epoched'             - Segmented data around events
+    %                'artifacts_rejected'  - Final clean epochs
+    %                'final'               - Analysis-ready datasets
+    %   config     - Configuration structure from default_config() containing:
+    %                .dirs   - Directory paths for each stage
+    %                .naming - Filename patterns for each stage
+    %   variant    - String, optional data variant suffix:
+    %                '1Hz' - 1Hz high-pass filtered version (preprocessed only)
+    %                ''    - Default version (default)
     %
     % Outputs:
-    %   EEG - Updated EEG structure
+    %   EEG - Updated EEGLAB EEG structure with:
+    %         .setname updated to match stage naming convention
+    %         .filename and .filepath set to save location
+    %         Validated by eeg_checkset()
+    %
+    % Stage Directory Mapping:
+    %   preprocessed        -> output/02_preprocessed/
+    %   ica                 -> output/03_ica/
+    %   components_rejected -> output/04_components_rejected/
+    %   epoched             -> output/05_epoched/
+    %   artifacts_rejected  -> output/06_artifacts_rejected/
+    %   final               -> output/07_final/
+    %
+    % Naming Convention Examples:
+    %   Standard: 'frank-prepro-01hz.set'
+    %   Variant:  'estelle-prepro-1hz.set'
+    %   ICA:      'morty-ica.set'
+    %   Epoched:  'helen-epochs.set'
     %
     % Examples:
-    %   EEG = save_eeg_to_stage(EEG, 'sub001', 'preprocessed', config);
-    %   EEG = save_eeg_to_stage(EEG, 'sub001', 'preprocessed', config, '1Hz');
+    %   % Save standard preprocessed data (0.1Hz)
+    %   config = default_config();
+    %   EEG = save_eeg_to_stage(EEG, 'elaine', 'preprocessed', config);
+    %
+    %   % Save 1Hz variant of preprocessed data
+    %   EEG = save_eeg_to_stage(EEG, 'jerry', 'preprocessed', config, '1Hz');
+    %
+    %   % Save ICA results
+    %   EEG = save_eeg_to_stage(EEG, 'george', 'ica', config);
+    %
+    % Workspace Integration:
+    %   - Automatically updates ALLEEG workspace if present
+    %   - Uses eeg_store() for proper EEGLAB dataset management
+    %   - Maintains CURRENTSET index for GUI compatibility
+    %   - Safe for both batch processing and interactive use
+    %
+    % Notes:
+    %   - Creates output directories automatically if they don't exist
+    %   - Prints stage and filename for verification
+    %   - Variant naming only applies to non-preprocessed stages as suffix
+    %   - Uses config naming patterns for consistent file organization
+    %   - Preferred method for pipeline-based EEG data saving
+    %
+    % See also: save_eeg_dataset, pop_saveset, load_eeg_from_stage, default_config
+    %
+    % Author: Matt Kmiecik
 
     if nargin < 5
         variant = '';
