@@ -167,7 +167,7 @@ function [success, EEG] = erplab_prepro(subject_id, config)
         
         %% REREFERENCE TO AVERAGE MASTOID
         fprintf('  Re-referencing to average mastoid...\n');
-        EEG = pop_reref(EEG, config.reference_channels);
+        EEG = pop_reref(EEG, config.reference_channels, 'keepref', 'on');
         
         %% SAVE PREPROCESSED DATA TO 02_PREPROCESSED
         fprintf('  Saving preprocessed data...\n');
