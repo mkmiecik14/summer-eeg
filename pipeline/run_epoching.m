@@ -7,8 +7,8 @@ clear; clc;
 
 % Add function paths
 addpath('src/functions');
-addpath('src/utils'); 
-addpath('src/config');
+addpath('src/utils');
+addpath('src');
 
 % Initialize EEGLAB
 [ALLEEG, EEG, CURRENTSET, ALLCOM] = eeglab;

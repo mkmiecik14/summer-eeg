@@ -1,14 +1,14 @@
-% FILE: run_ica.m (in main project directory)
+% FILE: run_erplab_artifact_rejection.m (in pipeline directory)
 
-%% SIMPLE ICA PIPELINE
-% This runs ICA decomposition for all subjects using eeg_ica.m function
+%% ERPLAB ARTIFACT REJECTION PIPELINE
+% This runs ERPLAB-based artifact rejection for all subjects using erplab_art_rej.m function
 
 clear; clc;
 
 % Add function paths
 addpath('src/functions');
-addpath('src/utils'); 
-addpath('src/config');
+addpath('src/utils');
+addpath('src');
 
 % Initialize EEGLAB
 [ALLEEG, EEG, CURRENTSET, ALLCOM] = eeglab;
@@ -16,11 +16,14 @@ addpath('src/config');
 % Load configuration
 config = default_config();
 
-% Load subject list (from your original workspace_prep.m approach)
+% Setup output directories
+setup_output_directories(config);
+
+% Load subject list
 [NUM, TXT, RAW] = xlsread(fullfile(config.doc_dir, 'ss-info.xlsx'));
 ss = string({RAW{2:size(RAW,1),1}});
 
-fprintf('Starting ICA decomposition for %d subjects...\n', length(ss));
+fprintf('Starting ERPLAB artifact rejection for %d subjects...\n', length(ss));
 
 % Process each subject
 success_count = 0;
@@ -32,8 +35,8 @@ for i = 1:length(ss)
     fprintf('\n=== Processing Subject %s (%d/%d) ===\n', this_ss, i, length(ss));
     
     try
-        % Run ICA function
-        [success, EEG] = eeg_ica(this_ss, config);
+        % Run ERPLAB artifact rejection function
+        [success, EEG] = erplab_art_rej(this_ss, config);
         
         if success
             success_count = success_count + 1;
@@ -48,7 +51,7 @@ for i = 1:length(ss)
         fprintf('✗ Subject %s crashed: %s\n', this_ss, ME.message);
         
         % Save error for later analysis
-        error_file = fullfile(config.output_dir, [this_ss '_ica_error.mat']);
+        error_file = fullfile(config.dirs.logs, 'error_logs', [this_ss '_erplab_art_rej_error.mat']);
         save(error_file, 'ME');
         
         % Continue with next subject
@@ -57,7 +60,7 @@ for i = 1:length(ss)
 end
 
 % Summary
-fprintf('\n=== ICA DECOMPOSITION COMPLETE ===\n');
+fprintf('\n=== ERPLAB ARTIFACT REJECTION COMPLETE ===\n');
 fprintf('Successful: %d/%d subjects\n', success_count, length(ss));
 fprintf('Failed: %d subjects\n', length(failed_subjects));
 

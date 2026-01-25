@@ -12,7 +12,7 @@ function setup_output_directories(config)
     % Inputs:
     %   config - Configuration structure from default_config() containing:
     %            .dirs - Directory path structure with all processing stages:
-    %                    .raw, .preprocessed, .ica, .components_rejected,
+    %                    .preprocessed, .ica, .components_rejected,
     %                    .epoched, .artifacts_rejected, .final,
     %                    .logs, .quality_control
     %
@@ -21,7 +21,6 @@ function setup_output_directories(config)
     %
     % Created Directory Structure:
     %   Processing Stages:
-    %     output/01_raw/                - Raw input data staging
     %     output/02_preprocessed/       - Filtered, re-referenced data
     %     output/03_ica/                - ICA decomposition results
     %     output/04_components_rejected/- Post-component rejection data

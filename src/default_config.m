@@ -28,7 +28,6 @@ function config = default_config()
     %            Processing parameters and quality control options
     %
     % Stage-Based Directory Structure:
-    %   .dirs.raw                 - output/01_raw/
     %   .dirs.preprocessed        - output/02_preprocessed/
     %   .dirs.ica                 - output/03_ica/
     %   .dirs.components_rejected - output/04_components_rejected/
@@ -148,7 +147,6 @@ function config = default_config()
     %% STAGE-BASED OUTPUT DIRECTORIES
     config.dirs = struct();
     config.dirs.base = config.output_dir;
-    config.dirs.raw = fullfile(config.output_dir, '01_raw');
     config.dirs.preprocessed = fullfile(config.output_dir, '02_preprocessed');
     config.dirs.ica = fullfile(config.output_dir, '03_ica');
     config.dirs.components_rejected = fullfile(config.output_dir, '04_components_rejected');

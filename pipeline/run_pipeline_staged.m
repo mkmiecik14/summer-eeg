@@ -13,8 +13,8 @@ fprintf('==========================================================\n');
 %% SETUP
 % Add function paths
 addpath('src/functions');
-addpath('src/utils'); 
-addpath('src/config');
+addpath('src/utils');
+addpath('src');
 
 % Initialize EEGLAB
 fprintf('Initializing EEGLAB...\n');
