@@ -190,8 +190,8 @@ function config = default_config()
     config.highpass_01hz = 0.1;
     config.highpass_1hz = 1;
     
-    config.event_codes = {'111','112','221','222'};
-    config.epoch_window = [-0.2 1]; % epoch window
+    config.event_codes = {'11', '22'}; % {'111','112','221','222'};
+    config.epoch_window = [-0.2 0.25]; % epoch window
     config.baseline_window = [-0.2 0]; % baseline correction
     config.amplitude_threshold = 100; % uV threshold
     
@@ -224,7 +224,7 @@ function config = default_config()
     config.erplab_art_rej.lowpass_filter = 30;
     
     % Epoching parameters
-    config.erplab_art_rej.epoch_window = [-0.2 1];  % ERPLAB epoch window
+    config.erplab_art_rej.epoch_window = [-0.2 0.25];  % ERPLAB epoch window
     config.erplab_art_rej.baseline_window = [-0.2 0];  % ERPLAB baseline
     
     % Artifact rejection thresholds
