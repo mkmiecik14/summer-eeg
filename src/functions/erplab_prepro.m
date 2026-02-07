@@ -118,6 +118,12 @@ function [success, EEG] = erplab_prepro(subject_id, config)
     end
     
     try
+        % Setup diary logging with timestamp
+        log_dir = fullfile(config.dirs.logs, subject_id);
+        if ~exist(log_dir, 'dir'), mkdir(log_dir); end
+        timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+        diary(fullfile(log_dir, [subject_id '_erplab_prepro_' timestamp '.txt']));
+
         %% LOAD RAW DATA
         fprintf('  Loading raw data...\n');
         this_ss_path = dir(fullfile(config.data_dir, strcat(subject_id, '.bdf')));
@@ -177,15 +183,15 @@ function [success, EEG] = erplab_prepro(subject_id, config)
         
         success = true;
         fprintf('  ERPLAB preprocessing completed successfully for %s\n', subject_id);
-        
+        diary off;
+
     catch ME
         fprintf('  ERROR in ERPLAB preprocessing %s: %s\n', subject_id, ME.message);
-        
-        % Save error to logs directory
-        error_file = fullfile(config.dirs.logs, 'error_logs', ...
-            [subject_id '_erplab_prepro_error.mat']);
-        save(error_file, 'ME');
-        
+        fprintf('  Stack trace:\n');
+        for k = 1:length(ME.stack)
+            fprintf('    %s (line %d)\n', ME.stack(k).name, ME.stack(k).line);
+        end
+        diary off;
         rethrow(ME);
     end
 end

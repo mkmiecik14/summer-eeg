@@ -109,6 +109,12 @@ function [trial_data, events, time_vector, channel_labels] = extract_results(sub
     fprintf('  Pipeline type: %s\n', pipeline_type);
     
     try
+        % Setup diary logging with timestamp
+        log_dir = fullfile(config.dirs.logs, subject_id);
+        if ~exist(log_dir, 'dir'), mkdir(log_dir); end
+        timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+        diary(fullfile(log_dir, [subject_id '_extract_results_' timestamp '.txt']));
+
         %% LOAD EPOCHED EEG DATA
         fprintf('  Loading epoched EEG data...\n');
         
@@ -249,17 +255,15 @@ function [trial_data, events, time_vector, channel_labels] = extract_results(sub
         fprintf('  Channels: %d\n', length(channel_labels));
         
         fprintf('  Extraction completed successfully for %s\n', subject_id);
-        
+        diary off;
+
     catch ME
         fprintf('  ERROR in extracting results for %s: %s\n', subject_id, ME.message);
-        
-        % Save error to logs directory if available
-        if isfield(config, 'dirs') && isfield(config.dirs, 'logs')
-            error_file = fullfile(config.dirs.logs, 'error_logs', ...
-                [subject_id '_extract_results_error.mat']);
-            save(error_file, 'ME');
+        fprintf('  Stack trace:\n');
+        for k = 1:length(ME.stack)
+            fprintf('    %s (line %d)\n', ME.stack(k).name, ME.stack(k).line);
         end
-        
+        diary off;
         rethrow(ME);
     end
 end

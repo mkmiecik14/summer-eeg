@@ -49,11 +49,7 @@ for i = 1:length(ss)
     catch ME
         failed_subjects{end+1} = this_ss;
         fprintf('✗ Subject %s crashed: %s\n', this_ss, ME.message);
-        
-        % Save error for later analysis
-        error_file = fullfile(config.dirs.logs, 'error_logs', [this_ss '_erplab_art_rej_error.mat']);
-        save(error_file, 'ME');
-        
+
         % Continue with next subject
         continue;
     end

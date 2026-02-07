@@ -106,6 +106,12 @@ function [success, EEG_01Hz, EEG_1Hz] = eeg_prepro(subject_id, config)
     end
     
     try
+        % Setup diary logging with timestamp
+        log_dir = fullfile(config.dirs.logs, subject_id);
+        if ~exist(log_dir, 'dir'), mkdir(log_dir); end
+        timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+        diary(fullfile(log_dir, [subject_id '_eeg_prepro_' timestamp '.txt']));
+
         % Ensure output directories exist
         if config.create_directories
             setup_output_directories(config);
@@ -173,28 +179,17 @@ function [success, EEG_01Hz, EEG_1Hz] = eeg_prepro(subject_id, config)
         % Save 1Hz data to preprocessed stage with variant
         EEG_1Hz = save_eeg_to_stage(EEG_1Hz, subject_id, 'preprocessed', config, '1Hz');
         
-        %% QUALITY CONTROL (save to QC directory)
-        if config.enable_quality_control
-            fprintf('  Running quality control...\n');
-            [EEG_01Hz, quality_report] = run_quality_control(EEG_01Hz, subject_id, config);
-            
-            % Save quality report to QC directory
-            qc_file = fullfile(config.dirs.quality_control, 'individual_reports', ...
-                [subject_id '_preprocessing_quality.mat']);
-            save(qc_file, 'quality_report');
-        end
-        
         success = true;
         fprintf('  Preprocessing completed successfully for %s\n', subject_id);
+        diary off;
         
     catch ME
         fprintf('  ERROR in preprocessing %s: %s\n', subject_id, ME.message);
-        
-        % Save error to logs directory
-        error_file = fullfile(config.dirs.logs, 'error_logs', ...
-            [subject_id '_preprocessing_error.mat']);
-        save(error_file, 'ME');
-        
+        fprintf('  Stack trace:\n');
+        for k = 1:length(ME.stack)
+            fprintf('    %s (line %d)\n', ME.stack(k).name, ME.stack(k).line);
+        end
+        diary off;
         rethrow(ME);
     end
 end

@@ -147,15 +147,13 @@ function config = default_config()
     %% STAGE-BASED OUTPUT DIRECTORIES
     config.dirs = struct();
     config.dirs.base = config.output_dir;
-    config.dirs.preprocessed = fullfile(config.output_dir, '02_preprocessed');
-    config.dirs.ica = fullfile(config.output_dir, '03_ica');
-    config.dirs.components_rejected = fullfile(config.output_dir, '04_components_rejected');
-    config.dirs.epoched = fullfile(config.output_dir, '05_epoched');
-    config.dirs.artifacts_rejected = fullfile(config.output_dir, '06_artifacts_rejected');
-    config.dirs.final = fullfile(config.output_dir, '07_final');
-    config.dirs.quality_control = fullfile(config.output_dir, 'quality_control');
+    config.dirs.preprocessed = fullfile(config.output_dir, '01_preprocessed');
+    config.dirs.ica = fullfile(config.output_dir, '02_ica');
+    config.dirs.components_rejected = fullfile(config.output_dir, '03_components_rejected');
+    config.dirs.epoched = fullfile(config.output_dir, '04_epoched');
+    config.dirs.artifacts_rejected = fullfile(config.output_dir, '05_artifacts_rejected');
+    config.dirs.final = fullfile(config.output_dir, '06_final');
     config.dirs.logs = fullfile(config.output_dir, 'logs');
-    config.dirs.derivatives = fullfile(config.output_dir, 'derivatives');
     
     %% FILE NAMING CONVENTIONS
     config.naming = struct();
@@ -238,8 +236,6 @@ function config = default_config()
     
     
     %% OPTIONS
-    config.enable_quality_control = true;
-    config.generate_reports = true;
     config.save_intermediate_files = true;
     config.create_directories = true;  % Auto-create output directories
 end

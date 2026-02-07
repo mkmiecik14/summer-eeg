@@ -100,6 +100,12 @@ function [success, EEG] = eeg_epochs(subject_id, config)
     end
     
     try
+        % Setup diary logging with timestamp
+        log_dir = fullfile(config.dirs.logs, subject_id);
+        if ~exist(log_dir, 'dir'), mkdir(log_dir); end
+        timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+        diary(fullfile(log_dir, [subject_id '_eeg_epochs_' timestamp '.txt']));
+
         %% LOAD DATA AND APPLY ICA WEIGHTS
         fprintf('  Loading 0.1Hz preprocessed data...\n');
         [EEG, ~] = load_eeg_from_stage(subject_id, 'preprocessed', config);
@@ -167,35 +173,21 @@ function [success, EEG] = eeg_epochs(subject_id, config)
         fprintf('  Rejected %d trials (%.1f%% rejection rate)\n', ...
             rejected_trials, rejection_rate);
         
-        % Save artifact rejection report
-        rejection_report = struct();
-        rejection_report.subject_id = subject_id;
-        rejection_report.initial_trials = initial_trials;
-        rejection_report.final_trials = final_trials;
-        rejection_report.rejected_trials = rejected_trials;
-        rejection_report.rejection_rate = rejection_rate;
-        rejection_report.threshold = config.amplitude_threshold;
-        rejection_report.timestamp = datetime('now');
-        
-        report_file = fullfile(config.dirs.quality_control, 'individual_reports', ...
-            [subject_id '_artifact_rejection_report.mat']);
-        save(report_file, 'rejection_report');
-        
         %% SAVE FINAL CLEAN AND ARTIFACT REJECTED DATA
         fprintf('  Saving artifact-rejected data...\n');
         EEG = save_eeg_to_stage(EEG, subject_id, 'artifacts_rejected', config);
         
         success = true;
         fprintf('  Epoching completed successfully for %s\n', subject_id);
-        
+        diary off;
+
     catch ME
         fprintf('  ERROR in epoching %s: %s\n', subject_id, ME.message);
-        
-        % Save error to logs directory
-        error_file = fullfile(config.dirs.logs, 'error_logs', ...
-            [subject_id '_epoching_error.mat']);
-        save(error_file, 'ME');
-        
+        fprintf('  Stack trace:\n');
+        for k = 1:length(ME.stack)
+            fprintf('    %s (line %d)\n', ME.stack(k).name, ME.stack(k).line);
+        end
+        diary off;
         rethrow(ME);
     end
 end

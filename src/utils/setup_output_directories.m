@@ -14,7 +14,7 @@ function setup_output_directories(config)
     %            .dirs - Directory path structure with all processing stages:
     %                    .preprocessed, .ica, .components_rejected,
     %                    .epoched, .artifacts_rejected, .final,
-    %                    .logs, .quality_control
+    %                    .logs
     %
     % Outputs:
     %   None (creates directories on filesystem)
@@ -28,16 +28,9 @@ function setup_output_directories(config)
     %     output/06_artifacts_rejected/ - Final clean epochs
     %     output/07_final/              - Analysis-ready datasets
     %
-    %   Logging Infrastructure:
-    %     output/logs/error_logs/       - Error and exception logs
-    %     output/logs/performance_logs/ - Processing time and metrics
-    %     output/logs/by_date/          - Date-organized log files
-    %     output/logs/by_subject/       - Subject-specific logs
-    %
-    %   Quality Control:
-    %     output/quality_control/individual_reports/ - Per-subject QC reports
-    %     output/quality_control/summary_reports/    - Batch processing summaries
-    %     output/quality_control/plots/              - QC visualization plots
+    %   Logging:
+    %     output/logs/                  - Base log directory
+    %     output/logs/[participant_id]/ - Per-participant diary log files
     %
     % Features:
     %   - Checks for existing directories before creation
@@ -86,26 +79,6 @@ function setup_output_directories(config)
             fprintf('  Created: %s\n', dir_path);
         else
             fprintf('  Exists:  %s\n', dir_path);
-        end
-    end
-    
-    % Create subdirectories for logs
-    log_subdirs = {'error_logs', 'performance_logs', 'by_date', 'by_subject'};
-    for i = 1:length(log_subdirs)
-        subdir_path = fullfile(config.dirs.logs, log_subdirs{i});
-        if ~exist(subdir_path, 'dir')
-            mkdir(subdir_path);
-            fprintf('  Created: %s\n', subdir_path);
-        end
-    end
-    
-    % Create QC subdirectories
-    qc_subdirs = {'individual_reports', 'summary_reports', 'plots'};
-    for i = 1:length(qc_subdirs)
-        subdir_path = fullfile(config.dirs.quality_control, qc_subdirs{i});
-        if ~exist(subdir_path, 'dir')
-            mkdir(subdir_path);
-            fprintf('  Created: %s\n', subdir_path);
         end
     end
     

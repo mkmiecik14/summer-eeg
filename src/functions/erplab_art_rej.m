@@ -148,6 +148,12 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
     end
     
     try
+        % Setup diary logging with timestamp
+        log_dir = fullfile(config.dirs.logs, subject_id);
+        if ~exist(log_dir, 'dir'), mkdir(log_dir); end
+        timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+        diary(fullfile(log_dir, [subject_id '_erplab_art_rej_' timestamp '.txt']));
+
         %% LOAD PREPROCESSED DATA FROM 02_PREPROCESSED
         fprintf('  Loading preprocessed data...\n');
         prepro_filename = sprintf(config.naming.preprocessed_erplab, subject_id);
@@ -275,32 +281,17 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
         fprintf('    Rejected trials: %d (%.1f%%)\n', rejected_trials, rejection_rate);
         fprintf('    Final trials: %d\n', final_trials);
         
-        % Save rejection report
-        rejection_report = struct();
-        rejection_report.subject_id = subject_id;
-        rejection_report.method = 'ERPLAB';
-        rejection_report.initial_trials = initial_trials;
-        rejection_report.final_trials = final_trials;
-        rejection_report.rejected_trials = rejected_trials;
-        rejection_report.rejection_rate = rejection_rate;
-        rejection_report.parameters = config.erplab_art_rej;
-        rejection_report.timestamp = datetime('now');
-        
-        report_file = fullfile(config.dirs.quality_control, 'individual_reports', ...
-            [subject_id '_erplab_art_rej_report.mat']);
-        save(report_file, 'rejection_report');
-        
         success = true;
         fprintf('  ERPLAB artifact rejection completed successfully for %s\n', subject_id);
-        
+        diary off;
+
     catch ME
         fprintf('  ERROR in ERPLAB artifact rejection %s: %s\n', subject_id, ME.message);
-        
-        % Save error to logs directory
-        error_file = fullfile(config.dirs.logs, 'error_logs', ...
-            [subject_id '_erplab_art_rej_error.mat']);
-        save(error_file, 'ME');
-        
+        fprintf('  Stack trace:\n');
+        for k = 1:length(ME.stack)
+            fprintf('    %s (line %d)\n', ME.stack(k).name, ME.stack(k).line);
+        end
+        diary off;
         rethrow(ME);
     end
 end
