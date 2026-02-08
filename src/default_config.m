@@ -154,6 +154,7 @@ function config = default_config()
     config.dirs.artifacts_rejected = fullfile(config.output_dir, '05_artifacts_rejected');
     config.dirs.final = fullfile(config.output_dir, '06_final');
     config.dirs.logs = fullfile(config.output_dir, 'logs');
+    config.dirs.pipeline_logs = fullfile(config.output_dir, 'logs', 'pipeline');
     
     %% FILE NAMING CONVENTIONS
     config.naming = struct();

@@ -16,6 +16,13 @@ addpath('src');
 % Load configuration
 config = default_config();
 
+% Setup pipeline diary logging
+timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+pipeline_log_dir = config.dirs.pipeline_logs;
+if ~exist(pipeline_log_dir, 'dir'), mkdir(pipeline_log_dir); end
+log_file = fullfile(pipeline_log_dir, ['run_ica_' timestamp '.txt']);
+diary(log_file);
+
 % Load subject list (from your original workspace_prep.m approach)
 [NUM, TXT, RAW] = xlsread(fullfile(config.doc_dir, 'ss-info.xlsx'));
 ss = string({RAW{2:size(RAW,1),1}});
@@ -34,7 +41,8 @@ for i = 1:length(ss)
     try
         % Run ICA function
         [success, EEG] = eeg_ica(this_ss, config);
-        
+        diary(log_file); % re-enable pipeline diary after core function
+
         if success
             success_count = success_count + 1;
             fprintf('✓ Subject %s completed successfully\n', this_ss);
@@ -44,6 +52,7 @@ for i = 1:length(ss)
         end
         
     catch ME
+        diary(log_file); % re-enable pipeline diary in case core function left it off
         failed_subjects{end+1} = this_ss;
         fprintf('✗ Subject %s crashed: %s\n', this_ss, ME.message);
 
@@ -60,6 +69,8 @@ fprintf('Failed: %d subjects\n', length(failed_subjects));
 if ~isempty(failed_subjects)
     fprintf('Failed subjects: %s\n', strjoin(failed_subjects, ', '));
 end
+
+diary off;
 
 % Redraw EEGLAB GUI
 eeglab redraw;

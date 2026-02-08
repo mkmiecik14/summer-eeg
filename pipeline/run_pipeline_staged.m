@@ -26,6 +26,13 @@ config = default_config();
 % Setup output directory structure
 setup_output_directories(config);
 
+% Setup pipeline diary logging
+timestamp = datestr(now, 'yyyymmdd_HHMMSS');
+pipeline_log_dir = config.dirs.pipeline_logs;
+if ~exist(pipeline_log_dir, 'dir'), mkdir(pipeline_log_dir); end
+log_file = fullfile(pipeline_log_dir, ['run_pipeline_staged_' timestamp '.txt']);
+diary(log_file);
+
 % Validate configuration
 fprintf('Validating configuration...\n');
 if ~exist(config.data_dir, 'dir')
@@ -90,7 +97,8 @@ for i = 1:length(subjects_to_process)
             stage_start_time = tic;
             
             [success, EEG_01Hz, EEG_1Hz] = process_subject_preprocessing(subject_id, config);
-            
+            diary(log_file); % re-enable pipeline diary after core function
+
             if success
                 pipeline_log.results(i).completed_stages{end+1} = 'preprocessing';
                 fprintf('  ✓ Preprocessing completed (%.1f s)\n', toc(stage_start_time));
@@ -105,7 +113,8 @@ for i = 1:length(subjects_to_process)
             stage_start_time = tic;
             
             [success, EEG_ica] = process_subject_ica(subject_id, config);
-            
+            diary(log_file); % re-enable pipeline diary after core function
+
             if success
                 pipeline_log.results(i).completed_stages{end+1} = 'ica';
                 fprintf('  ✓ ICA completed (%.1f s)\n', toc(stage_start_time));
@@ -120,7 +129,8 @@ for i = 1:length(subjects_to_process)
             stage_start_time = tic;
             
             [success, EEG_final] = process_subject_epochs(subject_id, config);
-            
+            diary(log_file); % re-enable pipeline diary after core function
+
             if success
                 pipeline_log.results(i).completed_stages{end+1} = 'epoching';
                 fprintf('  ✓ Epoching completed (%.1f s)\n', toc(stage_start_time));
@@ -140,6 +150,7 @@ for i = 1:length(subjects_to_process)
         display_progress_summary(i, length(subjects_to_process), pipeline_log, total_start_time);
         
     catch ME
+        diary(log_file); % re-enable pipeline diary in case core function left it off
         %% ERROR HANDLING
         pipeline_log.results(i).errors{end+1} = ME.message;
         pipeline_log.results(i).processing_time = toc(subject_start_time);
@@ -188,6 +199,8 @@ end
 
 fprintf('Reports saved to: %s\n', config.dirs.quality_control);
 fprintf('Data organized in: %s\n', config.dirs.base);
+
+diary off;
 
 % Redraw EEGLAB GUI
 eeglab redraw;
