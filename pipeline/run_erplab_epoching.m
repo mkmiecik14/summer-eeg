@@ -1,7 +1,5 @@
-% FILE: run_ica.m (in main project directory)
-
-%% SIMPLE ICA PIPELINE
-% This runs ICA decomposition for all subjects using eeg_ica.m function
+%% ERPLAB ARTIFACT REJECTION PIPELINE
+% This runs ERPLAB-based artifact rejection for all subjects using erplab_art_rej.m function
 
 clear; clc;
 
@@ -16,18 +14,21 @@ addpath('src');
 % Load configuration
 config = default_config();
 
+% Setup output directories
+setup_output_directories(config);
+
 % Setup pipeline diary logging
 timestamp = datestr(now, 'yyyymmdd_HHMMSS');
 pipeline_log_dir = config.dirs.pipeline_logs;
 if ~exist(pipeline_log_dir, 'dir'), mkdir(pipeline_log_dir); end
-log_file = fullfile(pipeline_log_dir, ['run_ica_' timestamp '.txt']);
+log_file = fullfile(pipeline_log_dir, ['run_erplab_epoching_' timestamp '.txt']);
 diary(log_file);
 
-% Load subject list (from your original workspace_prep.m approach)
+% Load subject list
 [NUM, TXT, RAW] = xlsread(fullfile(config.doc_dir, 'ss-info.xlsx'));
 ss = string({RAW{2:size(RAW,1),1}});
 
-fprintf('Starting ICA decomposition for %d subjects...\n', length(ss));
+fprintf('Starting ERPLAB artifact rejection for %d subjects...\n', length(ss));
 
 % Process each subject
 success_count = 0;
@@ -39,8 +40,8 @@ for i = 1:length(ss)
     fprintf('\n=== Processing Subject %s (%d/%d) ===\n', this_ss, i, length(ss));
     
     try
-        % Run ICA function
-        [success, EEG] = eeg_ica(this_ss, config);
+        % Run ERPLAB artifact rejection function
+        [success, EEG] = erplab_art_rej(this_ss, config);
         diary(log_file); % re-enable pipeline diary after core function
 
         if success
@@ -62,7 +63,7 @@ for i = 1:length(ss)
 end
 
 % Summary
-fprintf('\n=== ICA DECOMPOSITION COMPLETE ===\n');
+fprintf('\n=== ERPLAB ARTIFACT REJECTION COMPLETE ===\n');
 fprintf('Successful: %d/%d subjects\n', success_count, length(ss));
 fprintf('Failed: %d subjects\n', length(failed_subjects));
 

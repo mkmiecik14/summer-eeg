@@ -1,7 +1,5 @@
-% FILE: run_epoching.m (in main project directory)
-
-%% SIMPLE EPOCHING PIPELINE
-% This runs epoching and artifact rejection for all subjects using eeg_epochs.m function
+%% SIMPLE ICA PIPELINE
+% This runs ICA decomposition for all subjects using eeg_ica.m function
 
 clear; clc;
 
@@ -20,14 +18,14 @@ config = default_config();
 timestamp = datestr(now, 'yyyymmdd_HHMMSS');
 pipeline_log_dir = config.dirs.pipeline_logs;
 if ~exist(pipeline_log_dir, 'dir'), mkdir(pipeline_log_dir); end
-log_file = fullfile(pipeline_log_dir, ['run_epoching_' timestamp '.txt']);
+log_file = fullfile(pipeline_log_dir, ['run_eeglab_ica_' timestamp '.txt']);
 diary(log_file);
 
 % Load subject list (from your original workspace_prep.m approach)
 [NUM, TXT, RAW] = xlsread(fullfile(config.doc_dir, 'ss-info.xlsx'));
 ss = string({RAW{2:size(RAW,1),1}});
 
-fprintf('Starting epoching and artifact rejection for %d subjects...\n', length(ss));
+fprintf('Starting ICA decomposition for %d subjects...\n', length(ss));
 
 % Process each subject
 success_count = 0;
@@ -39,8 +37,8 @@ for i = 1:length(ss)
     fprintf('\n=== Processing Subject %s (%d/%d) ===\n', this_ss, i, length(ss));
     
     try
-        % Run epoching function
-        [success, EEG] = eeg_epochs(this_ss, config);
+        % Run ICA function
+        [success, EEG] = eeg_ica(this_ss, config);
         diary(log_file); % re-enable pipeline diary after core function
 
         if success
@@ -62,7 +60,7 @@ for i = 1:length(ss)
 end
 
 % Summary
-fprintf('\n=== EPOCHING AND ARTIFACT REJECTION COMPLETE ===\n');
+fprintf('\n=== ICA DECOMPOSITION COMPLETE ===\n');
 fprintf('Successful: %d/%d subjects\n', success_count, length(ss));
 fprintf('Failed: %d subjects\n', length(failed_subjects));
 

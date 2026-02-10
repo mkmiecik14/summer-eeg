@@ -51,10 +51,13 @@ rsconnect/
 # R projects 
 *.Rproj
 
-# directories
-doc/
-output/
-data/
+# directories (ignore contents but track READMEs)
+doc/*
+!doc/README.md
+output/*
+!output/README.md
+data/*
+!data/README.md
 
 # MACOS
 .DS_Store
