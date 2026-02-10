@@ -175,7 +175,7 @@ function [success, EEG] = erplab_prepro(subject_id, config)
         fprintf('  Re-referencing to average mastoid...\n');
         EEG = pop_reref(EEG, config.reference_channels, 'keepref', 'on');
         
-        %% SAVE PREPROCESSED DATA TO 02_PREPROCESSED
+        %% SAVE PREPROCESSED DATA TO 01_PREPROCESSED
         fprintf('  Saving preprocessed data...\n');
         prepro_filename = sprintf(config.naming.preprocessed_erplab, subject_id);
         EEG = pop_saveset(EEG, 'filename', [prepro_filename '.set'], ...

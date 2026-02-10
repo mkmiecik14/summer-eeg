@@ -98,10 +98,14 @@ function EEG = review_eeg_simple(subject_id, stage, config, pipeline_type)
                 end
                 
             case 'ica'
-                % Load preprocessed data and apply ICA weights
-                % Default to 0.1Hz for ICA stage
+                % Load preprocessed data, remove bad channels, and apply ICA weights
                 fprintf('  Loading 0.1Hz preprocessed data with ICA weights...\n');
                 [EEG, ~] = load_eeg_from_stage(subject_id, 'preprocessed', config);
+                bad_channels = get_bad_channels_from_excel(subject_id, config);
+                if ~isempty(bad_channels)
+                    fprintf('  Removing %d bad channels to match ICA dimensions...\n', length(bad_channels));
+                    EEG = pop_select(EEG, 'nochannel', bad_channels);
+                end
                 EEG = load_ica_weights(EEG, subject_id, config);
                 
             case 'components_rejected'

@@ -26,8 +26,8 @@ function [success, EEG] = eeg_ica(subject_id, config)
     %   1. Load 1Hz preprocessed data (optimal for ICA)
     %   2. Check for visually-inspected data variants (*vis-rej.set)
     %   3. Extract bad channel information from Excel database
-    %   4. Interpolate bad channels using spherical interpolation
-    %   5. Calculate theoretical data rank (channels - bad_channels - reference)
+    %   4. Remove bad channels (will be interpolated back after ICA component rejection)
+    %   5. Calculate data rank (remaining channels - reference)
     %   6. Run extended Infomax ICA with computed rank constraint
     %   7. Save only ICA weights (95%+ disk space savings)
     %
@@ -38,8 +38,9 @@ function [success, EEG] = eeg_ica(subject_id, config)
     %   - Interruptible processing for large datasets
     %
     % Data Rank Calculation:
-    %   rank = n_channels - n_bad_channels - n_reference_channels
-    %   Accounts for: interpolated channels, linked mastoid reference
+    %   rank = n_remaining_channels - n_reference_channels
+    %   Bad channels are removed before ICA (not interpolated)
+    %   Accounts for: linked mastoid reference
     %   Prevents ICA convergence issues from rank deficiency
     %
     % Space-Efficient Storage:
@@ -75,12 +76,12 @@ function [success, EEG] = eeg_ica(subject_id, config)
     %
     % Notes:
     %   - Uses 1Hz preprocessed data (better for ICA convergence)
-    %   - Requires channel location information for interpolation
+    %   - Bad channels removed before ICA, interpolated back in eeg_epochs
     %   - ICA weights stored separately from full datasets
     %   - Memory-efficient approach suitable for large studies
     %   - Compatible with subsequent epoching and component rejection
     %
-    % See also: pop_runica, pop_interp, save_ica_weights, load_ica_weights, eeg_prepro
+    % See also: pop_runica, pop_select, save_ica_weights, load_ica_weights, eeg_prepro
     %
     % Author: Matt Kmiecik
     
@@ -121,16 +122,18 @@ function [success, EEG] = eeg_ica(subject_id, config)
         %% GET BAD CHANNELS
         bad_channels = get_bad_channels_from_excel(subject_id, config);       
         
-        %% INTERPOLATE BAD CHANNELS
+        %% REMOVE BAD CHANNELS (will be interpolated back after ICA component rejection)
         if ~isempty(bad_channels)
-            fprintf('  Interpolating %d bad channels...\n', length(bad_channels));
-            EEG = pop_interp(EEG, bad_channels, 'spherical');
+            fprintf('  Removing %d bad channels: %s\n', length(bad_channels), mat2str(bad_channels));
+            EEG = pop_select(EEG, 'nochannel', bad_channels);
+            fprintf('  Channels remaining after removal: %d\n', EEG.nbchan);
         else
-            fprintf('  No bad channels detected\n');
+            fprintf('  No bad channels to remove\n');
         end
-        
-        %% CALCULATE "THEORETICAL" RANK
-        data_rank = EEG.nbchan - length(bad_channels) - 1; % -1 for linked mastoids
+
+        %% CALCULATE DATA RANK
+        % After removal, EEG.nbchan already reflects reduced count; -1 for linked mastoid reference
+        data_rank = EEG.nbchan - 1;
         
         %% RUN ICA
         fprintf('  Running ICA decomposition (rank=%d)...\n', data_rank);

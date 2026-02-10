@@ -109,7 +109,16 @@ function [success, EEG] = eeg_epochs(subject_id, config)
         %% LOAD DATA AND APPLY ICA WEIGHTS
         fprintf('  Loading 0.1Hz preprocessed data...\n');
         [EEG, ~] = load_eeg_from_stage(subject_id, 'preprocessed', config);
-        
+
+        % Remove bad channels to match ICA weight dimensions
+        bad_channels = get_bad_channels_from_excel(subject_id, config);
+        original_chanlocs = EEG.chanlocs;
+        if ~isempty(bad_channels)
+            fprintf('  Removing %d bad channels to match ICA dimensions: %s\n', ...
+                length(bad_channels), mat2str(bad_channels));
+            EEG = pop_select(EEG, 'nochannel', bad_channels);
+        end
+
         % Load and apply ICA weights from lightweight file
         fprintf('  Loading and applying ICA weights...\n');
         EEG = load_ica_weights(EEG, subject_id, config);
@@ -136,6 +145,13 @@ function [success, EEG] = eeg_epochs(subject_id, config)
             fprintf('  No IC components rejected\n');
         end
         
+        % Interpolate bad channels back into data
+        if ~isempty(bad_channels)
+            fprintf('  Interpolating %d bad channels back into data...\n', length(bad_channels));
+            EEG = pop_interp(EEG, original_chanlocs, 'spherical');
+            fprintf('  Channels after interpolation: %d\n', EEG.nbchan);
+        end
+
         % Save after component rejection
         fprintf('  Saving component-rejected data...\n');
         EEG = save_eeg_to_stage(EEG, subject_id, 'components_rejected', config);
@@ -153,7 +169,7 @@ function [success, EEG] = eeg_epochs(subject_id, config)
         initial_trials = EEG.trials;
         
         % Amplitude-based rejection (mark but don't remove yet)
-        EEG = pop_eegthresh(EEG, 1, [1:64], -config.amplitude_threshold, ...
+        EEG = pop_eegthresh(EEG, 1, 1:EEG.nbchan, -config.amplitude_threshold, ...
             config.amplitude_threshold, EEG.xmin, EEG.xmax, 0, 0);
         
         % Save epoched data with rejection markers

@@ -1,113 +1,83 @@
-
-function [trial_data, events, time_vector, channel_labels] = extract_results(subject_id, config, pipeline_type)
-    % extract_results - Extract analysis data from epoched EEG datasets
+function [success, results] = extract_results(subject_id, config)
+    % EXTRACT_RESULTS - Extract analysis data from final clean EEG datasets
     %
-    % extract_results loads epoched EEG data from the 05_epoched stage and
-    % extracts key analysis components for ERP analysis including trial data,
-    % rejection markers, event codes, response events, and time vectors.
-    % Supports both EEGLAB and ERPLAB processing pipelines.
+    % EXTRACT_RESULTS loads the final clean EEG dataset from 06_final (after
+    % combined artifact rejection) and extracts key analysis components into a
+    % structured .mat file for downstream ERP analysis. Recovers original trial
+    % numbers using EEGLAB's urevent mapping so that rejected trials can be
+    % identified by their original position in the experiment.
     %
-    % Syntax: 
-    %   [trial_data, events, time_vector, channel_labels] = ...
-    %       extract_results(subject_id, config)
-    %   [trial_data, events, time_vector, channel_labels] = ...
-    %       extract_results(subject_id, config, pipeline_type)
+    % Syntax:
+    %   [success, results] = extract_results(subject_id, config)
     %
     % Inputs:
-    %   subject_id - String, subject identifier (e.g., 'jerry')
+    %   subject_id - String, subject identifier (e.g., 'MC_05_08_1')
     %   config     - Configuration structure from default_config() containing:
-    %                .dirs.epoched     - Epoched data directory path
-    %                .naming           - File naming conventions
-    %                .event_codes      - Expected event codes
-    %   pipeline_type - Optional string, processing pipeline:
-    %                   'eeglab' (default) - Use EEGLAB rejection markers
-    %                   'erplab'           - Use ERPLAB rejection markers
+    %                .dirs.final       - Final clean data directory (06_final/)
+    %                .dirs.logs        - Log file directory
+    %                .naming.final     - Final output filename pattern
+    %                .event_codes      - Expected stimulus event codes
     %
     % Outputs:
-    %   trial_data      - 3D matrix [channels × time_points × trials] containing EEG data
-    %   events          - Vector [1 × trials] of event codes for each epoch
-    %   time_vector     - Vector [1 × time_points] of time values in seconds for ERP plotting
-    %   channel_labels  - String array [1 × channels] of channel names
+    %   success - Logical, true if extraction completed successfully
+    %   results - Structure containing extracted data:
+    %             .data     - 3D matrix [channels x time_points x trials]
+    %             .time     - Time vector in seconds [1 x time_points]
+    %             .channels - Cell array of channel labels {1 x channels}
+    %             .trials   - Original trial numbers [1 x trials]
+    %             .triggers - Stimulus event codes [1 x trials]
+    %
+    % Output Files:
+    %   - Results .mat: output/06_final/[subject]-final.mat
+    %   - Log file:     output/logs/[subject]/[subject]_extract_results_[timestamp].txt
     %
     % Processing Steps:
-    %   1. Load epoched EEG data from appropriate stage directory
-    %   2. Extract 3D trial data matrix (channels × time × trials)
-    %   3. Extract rejection flags from EEG.reject structure
-    %   4. Parse event structure to identify trial and response markers
-    %   5. Generate time vector based on epoch window and sampling rate
-    %   6. Validate output dimensions and data integrity
+    %   1. Load final clean EEG dataset from 06_final/
+    %   2. Extract 3D data matrix (channels x time x trials)
+    %   3. Extract time vector from EEG.times
+    %   4. Extract channel labels from EEG.chanlocs
+    %   5. Extract stimulus event codes (triggers) for each epoch
+    %   6. Recover original trial numbers via urevent mapping
+    %   7. Save all variables to .mat file
     %
-    % Event Processing:
-    %   - trial_markers: Event code that triggered each epoch
-    %   - response_markers: Next event code following the trial event
-    %   - Handles missing or irregular response events gracefully
-    %   - Supports both EEGLAB and ERPLAB event structures
-    %
-    % Pipeline Support:
-    %   EEGLAB Pipeline:
-    %     - Uses EEG.reject.rejthresh for rejection markers
-    %     - Loads from '[subject]-epochs.set' files
-    %   
-    %   ERPLAB Pipeline:
-    %     - Uses EEG.reject.rejmanual for rejection markers
-    %     - Loads from '[subject]-epochs-erplab.set' files
+    % Original Trial Number Recovery:
+    %   After pop_rejepoch() physically removes epochs, the original trial
+    %   numbering is lost from the epoch indices. However, EEGLAB preserves
+    %   the full original event table in EEG.urevent, and each remaining
+    %   event retains its EEG.event(i).urevent index. This function:
+    %     1. Finds all stimulus urevents in order (= original trials 1..N)
+    %     2. For each surviving epoch, finds its time-locking event's urevent
+    %     3. Maps that urevent to its position in the original sequence
+    %   This recovers the original trial number for every retained epoch.
     %
     % Examples:
-    %   % Extract from EEGLAB epoched data
+    %   % Extract results for a single subject
     %   config = default_config();
-    %   [data, events, time, channels] = extract_results('elaine', config);
+    %   [success, results] = extract_results('MC_05_08_1', config);
     %
-    %   % Extract from ERPLAB epoched data
-    %   [data, events, time, channels] = extract_results('helen', config, 'erplab');
+    %   % Access extracted data
+    %   erp = mean(results.data, 3);             % average ERP
+    %   plot(results.time, erp(32, :));           % plot channel 32
+    %   fprintf('Kept trials: %s\n', mat2str(results.trials));
     %
-    %   % Use extracted data for ERP analysis
-    %   avg_erp = mean(data, 3);
-    %   plot(time, avg_erp(electrode_idx, :));
-    %
-    % Error Handling:
-    %   - Comprehensive validation of input parameters
-    %   - File existence checking with informative error messages
-    %   - Dimension consistency validation across outputs
-    %   - Graceful handling of missing event information
+    %   % Load saved .mat file later
+    %   results = load('output/06_final/MC_05_08_1-final.mat');
     %
     % Notes:
-    %   - Loads data from 05_epoched stage (contains rejection markers)
-    %   - Time vector uses EEG.times for exact alignment
-    %   - Rejection vectors indicate marked trials (not yet removed)
-    %   - Compatible with standard ERP analysis workflows
-    %   - Response detection assumes sequential event ordering
+    %   - Requires final clean data from combine_markers() in 06_final/
+    %   - Epochs are already physically removed; no rejection markers needed
+    %   - Original trial numbers enable alignment with behavioral data
+    %   - .mat file saved with -v7.3 for HDF5 compatibility
     %
-    % See also: load_eeg_from_stage, eeg_epochs, erplab_art_rej
+    % See also: combine_markers, erplab_art_rej, eeg_epochs, default_config
     %
     % Author: Matt Kmiecik
-    
-    %% INPUT VALIDATION AND DEFAULTS
-    if nargin < 3
-        pipeline_type = 'eeglab';
-    end
-    
-    % Validate pipeline_type
-    if ~ischar(pipeline_type) && ~isstring(pipeline_type)
-        error('pipeline_type must be a string: "eeglab" or "erplab"');
-    end
-    
-    valid_pipelines = {'eeglab', 'erplab'};
-    if ~any(strcmpi(pipeline_type, valid_pipelines))
-        error('pipeline_type must be "eeglab" or "erplab"');
-    end
-    
-    % Validate inputs
-    if ~ischar(subject_id) && ~isstring(subject_id)
-        error('subject_id must be a string or character array');
-    end
-    
-    if ~isstruct(config)
-        error('config must be a structure from default_config()');
-    end
-    
+
+    success = false;
+    results = [];
+
     fprintf('=== EXTRACTING RESULTS FOR SUBJECT: %s ===\n', subject_id);
-    fprintf('  Pipeline type: %s\n', pipeline_type);
-    
+
     try
         % Setup diary logging with timestamp
         log_dir = fullfile(config.dirs.logs, subject_id);
@@ -115,150 +85,116 @@ function [trial_data, events, time_vector, channel_labels] = extract_results(sub
         timestamp = datestr(now, 'yyyymmdd_HHMMSS');
         diary(fullfile(log_dir, [subject_id '_extract_results_' timestamp '.txt']));
 
-        %% LOAD EPOCHED EEG DATA
-        fprintf('  Loading epoched EEG data...\n');
-        
-        % Set up loading options for the appropriate pipeline
-        load_opts = struct();
-        if strcmpi(pipeline_type, 'erplab')
-            pipeline_type = 'erplab';
-        end
-
-        if strcmp(pipeline_type, 'erplab')
-            fprintf('  Loading ERPLAB epoched data...\n');
-            % Load ERPLAB epoched data (with rejection markers)
-            epoched_dir = config.dirs.epoched;
-            filename = sprintf(config.naming.epoched_erplab, subject_id);
-            epoched_file = fullfile(epoched_dir, [filename '.set']);
-                if exist(epoched_file, 'file')
-                    EEG = pop_loadset(epoched_file);
-                else
-                    error('ERPLAB epoched file not found: %s', epoched_file);
-                end
-        else
-            fprintf('  Loading EEGLAB epoched data...\n');
-            [EEG, ~] = load_eeg_from_stage(subject_id, 'epoched', config);
-        end
-        
-        fprintf('  Data dimensions: %d channels × %d time points × %d trials\n', ...
+        %% LOAD FINAL CLEAN DATASET FROM 06_FINAL
+        fprintf('  Loading final clean dataset...\n');
+        final_filename = sprintf(config.naming.final, subject_id);
+        EEG = pop_loadset('filename', [final_filename '.set'], ...
+            'filepath', config.dirs.final);
+        fprintf('  Data: %d channels x %d time points x %d trials\n', ...
             EEG.nbchan, EEG.pnts, EEG.trials);
-        
-        %% EXTRACT TRIAL DATA MATRIX
-        fprintf('  Extracting trial data matrix...\n');
-        trial_data = EEG.data;  % Already in format [channels × time_points × trials]
-        
-        %% EXTRACT REJECTION MARKERS
-        fprintf('  Extracting rejection markers...\n');
-        
-        % Initialize rejected_trials as empty logical vector
-        rejected_trials = false(1, EEG.trials);
-        
-        % Extract rejection flags based on pipeline type
-        if strcmpi(pipeline_type, 'erplab')
-            % ERPLAB uses rejmanual field
-            if isfield(EEG.reject, 'rejmanual') && ~isempty(EEG.reject.rejmanual)
-                rejected_trials = logical(EEG.reject.rejmanual);
-                fprintf('  Found %d trials marked for rejection (ERPLAB)\n', sum(rejected_trials));
-            else
-                fprintf('  No ERPLAB rejection markers found\n');
-            end
-        else
-            % EEGLAB uses rejthresh field
-            if isfield(EEG.reject, 'rejthresh') && ~isempty(EEG.reject.rejthresh)
-                rejected_trials = logical(EEG.reject.rejthresh);
-                fprintf('  Found %d trials marked for rejection (EEGLAB)\n', sum(rejected_trials));
-            else
-                fprintf('  No EEGLAB rejection markers found\n');
-            end
-        end
-        
-        %% EXTRACT EVENT MARKERS (ROBUSTLY)
-        fprintf('  Extracting event markers...\n');
 
-        events = zeros(1, EEG.trials); % preallocate numeric vector
-        
-        for trial = 1:EEG.trials
-            % Get the event types for this epoch
-            trial_events = string(EEG.epoch(trial).eventtype);
-            
-            % Find which trial_events are present in config.event_codes
-            matching_indices = ismember(trial_events, config.event_codes);
-            
-            if any(matching_indices)
-                % Take the first matching event as the trial marker
-                selected_events = trial_events(matching_indices);
-                events(trial) = double(selected_events(1));
-            else
-                % No matching event found - set to NaN or 0
-                events(trial) = 0;
-                fprintf('    Warning: No matching event found for trial %d\n', trial);
-            end
-        end
+        %% EXTRACT DATA MATRIX
+        fprintf('  Extracting data matrix...\n');
+        data = EEG.data; % channels x time_points x trials
 
-        %% GENERATE TIME VECTOR
-        fprintf('  Generating time vector...\n');
-        
-        % Create time vector based on epoch timing
+        %% EXTRACT TIME VECTOR
         if isfield(EEG, 'times') && ~isempty(EEG.times)
-            % Use EEGLAB's time vector if available (most accurate)
-            time_vector = EEG.times / 1000;  % Convert from ms to seconds
+            time = EEG.times / 1000; % ms to seconds
         else
-            % Generate time vector from epoch parameters
-            time_vector = linspace(EEG.xmin, EEG.xmax, EEG.pnts);
+            time = linspace(EEG.xmin, EEG.xmax, EEG.pnts);
         end
-        
-        fprintf('  Time vector: %.3f to %.3f seconds (%d points)\n', ...
-            time_vector(1), time_vector(end), length(time_vector));
+        fprintf('  Time: %.3f to %.3f s (%d points)\n', time(1), time(end), length(time));
 
         %% EXTRACT CHANNEL LABELS
-        channel_labels = string({EEG.chanlocs.labels});
-        
-        %% VALIDATION AND SUMMARY
-        fprintf('  Validating extracted data...\n');
-        
-        % Validate dimensions
-        expected_trials = EEG.trials;
-        if size(trial_data, 3) ~= expected_trials
-            error('Trial data dimension mismatch: expected %d trials, got %d', ...
-                expected_trials, size(trial_data, 3));
-        end
-        
-        if length(rejected_trials) ~= expected_trials
-            error('Rejection vector dimension mismatch: expected %d trials, got %d', ...
-                expected_trials, length(rejected_trials));
-        end
-        
-        if length(events) ~= expected_trials
-            error('Trial markers dimension mismatch: expected %d trials, got %d', ...
-                expected_trials, length(events));
-        end
-        
-        if length(time_vector) ~= EEG.pnts
-            error('Time vector dimension mismatch: expected %d points, got %d', ...
-                EEG.pnts, length(time_vector));
+        channels = {EEG.chanlocs.labels};
+
+        %% EXTRACT TRIGGERS AND UREVENT INDICES PER EPOCH
+        fprintf('  Extracting triggers...\n');
+        triggers = zeros(1, EEG.trials);
+        tl_urevents = zeros(1, EEG.trials);
+        event_codes_num = cellfun(@str2double, config.event_codes);
+
+        for i = 1:length(EEG.event)
+            evt = EEG.event(i);
+            if isnumeric(evt.type)
+                evt_num = evt.type;
+            else
+                evt_num = str2double(evt.type);
+            end
+            if ~isnan(evt_num) && ismember(evt_num, event_codes_num)
+                ep = evt.epoch;
+                if triggers(ep) == 0 % first matching event per epoch
+                    triggers(ep) = evt_num;
+                    tl_urevents(ep) = evt.urevent;
+                end
+            end
         end
 
-        if EEG.nbchan ~= length(channel_labels)
-            error('Channel data mismatch: expected %d channels, got %d', ...
-                EEG.nbchan, length(channel_labels));
-        end
+        %% RECOVER ORIGINAL TRIAL NUMBERS VIA UREVENT MAPPING
+        fprintf('  Recovering original trial numbers...\n');
 
-        % Summary
+        % Find all stimulus urevents in original order = trials 1..N
+        all_stim_urevents = zeros(1, length(EEG.urevent));
+        count = 0;
+        for i = 1:length(EEG.urevent)
+            if isnumeric(EEG.urevent(i).type)
+                ur_num = EEG.urevent(i).type;
+            else
+                ur_num = str2double(EEG.urevent(i).type);
+            end
+            if ~isnan(ur_num) && ismember(ur_num, event_codes_num)
+                count = count + 1;
+                all_stim_urevents(count) = i;
+            end
+        end
+        all_stim_urevents = all_stim_urevents(1:count);
+        fprintf('  Total original stimulus events (urevents): %d\n', count);
+
+        % Map each epoch's time-locking urevent to its original trial position
+        trials = zeros(1, EEG.trials);
+        for i = 1:EEG.trials
+            idx = find(all_stim_urevents == tl_urevents(i), 1);
+            if ~isempty(idx)
+                trials(i) = idx;
+            else
+                warning('Could not recover original trial number for epoch %d', i);
+                trials(i) = NaN;
+            end
+        end
+        fprintf('  Recovered trial numbers: %d to %d (of %d original)\n', ...
+            min(trials), max(trials), length(all_stim_urevents));
+
+        %% PACK RESULTS
+        results = struct();
+        results.data = data;
+        results.time = time;
+        results.channels = channels;
+        results.trials = trials;
+        results.triggers = triggers;
+
+        %% SAVE .MAT FILE
+        mat_filename = [final_filename '.mat'];
+        mat_filepath = fullfile(config.dirs.final, mat_filename);
+        fprintf('  Saving results to %s...\n', mat_filepath);
+        save(mat_filepath, '-struct', 'results', '-v7.3');
+
+        %% SUMMARY
         fprintf('=== EXTRACTION SUMMARY ===\n');
         fprintf('  Subject: %s\n', subject_id);
-        fprintf('  Data shape: %d channels × %d time points × %d trials\n', ...
-            size(trial_data, 1), size(trial_data, 2), size(trial_data, 3));
-        fprintf('  Rejected trials: %d (%.1f%%)\n', ...
-            sum(rejected_trials), (sum(rejected_trials)/length(rejected_trials))*100);
-        fprintf('  Time range: %.3f to %.3f seconds\n', time_vector(1), time_vector(end));
-        fprintf('  Valid events: %d\n', length(events));
-        fprintf('  Channels: %d\n', length(channel_labels));
-        
+        fprintf('  Data shape: %d channels x %d time points x %d trials\n', ...
+            size(data, 1), size(data, 2), size(data, 3));
+        fprintf('  Time range: %.3f to %.3f s\n', time(1), time(end));
+        fprintf('  Channels: %d\n', length(channels));
+        fprintf('  Original trials retained: %d / %d\n', ...
+            EEG.trials, length(all_stim_urevents));
+        fprintf('  Output: %s\n', mat_filepath);
+
+        success = true;
         fprintf('  Extraction completed successfully for %s\n', subject_id);
         diary off;
 
     catch ME
-        fprintf('  ERROR in extracting results for %s: %s\n', subject_id, ME.message);
+        fprintf('  ERROR in extract_results for %s: %s\n', subject_id, ME.message);
         fprintf('  Stack trace:\n');
         for k = 1:length(ME.stack)
             fprintf('    %s (line %d)\n', ME.stack(k).name, ME.stack(k).line);

@@ -154,7 +154,7 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
         timestamp = datestr(now, 'yyyymmdd_HHMMSS');
         diary(fullfile(log_dir, [subject_id '_erplab_art_rej_' timestamp '.txt']));
 
-        %% LOAD PREPROCESSED DATA FROM 02_PREPROCESSED
+        %% LOAD PREPROCESSED DATA FROM 01_PREPROCESSED
         fprintf('  Loading preprocessed data...\n');
         prepro_filename = sprintf(config.naming.preprocessed_erplab, subject_id);
         EEG = pop_loadset('filename', [prepro_filename '.set'], ...
@@ -174,7 +174,7 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
         EEG = pop_rmbase(EEG, config.erplab_art_rej.baseline_window);
         
         %% EOG ARTIFACT REJECTION (SKIPPED)
-        % EOG artifact rejection would go here but is skipped as requested
+        % EOG artifact rejection would go here but is skipped
         fprintf('  EOG artifact rejection: SKIPPED\n');
         
         %% EEG ARTIFACT REJECTION
@@ -241,7 +241,7 @@ function [success, EEG] = erplab_art_rej(subject_id, config)
         fprintf('  Syncing artifact rejection flags...\n');
         EEG = pop_syncroartifacts(EEG, 'Direction', 'bidirectional');
         
-        %% SAVE EPOCHED DATA WITH REJECTION MARKERS TO 05_EPOCHED
+        %% SAVE EPOCHED DATA WITH REJECTION MARKERS TO 04_EPOCHED
         fprintf('  Saving epoched data with rejection markers...\n');
         epoched_filename = sprintf(config.naming.epoched_erplab, subject_id);
         EEG_epoched = pop_saveset(EEG, 'filename', [epoched_filename '.set'], ...

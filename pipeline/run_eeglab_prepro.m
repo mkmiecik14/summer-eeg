@@ -1,5 +1,3 @@
-% FILE: run_preprocessing.m (in main project directory)
-
 %% SIMPLE PREPROCESSING PIPELINE
 % This replaces current eeg_prepro.m for loop
 
@@ -20,7 +18,7 @@ config = default_config();
 timestamp = datestr(now, 'yyyymmdd_HHMMSS');
 pipeline_log_dir = config.dirs.pipeline_logs;
 if ~exist(pipeline_log_dir, 'dir'), mkdir(pipeline_log_dir); end
-log_file = fullfile(pipeline_log_dir, ['run_preprocessing_' timestamp '.txt']);
+log_file = fullfile(pipeline_log_dir, ['run_eeglab_prepro_' timestamp '.txt']);
 diary(log_file);
 
 % Load subject list (from your original workspace_prep.m approach)

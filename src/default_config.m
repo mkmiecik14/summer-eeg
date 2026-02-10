@@ -188,7 +188,7 @@ function config = default_config()
     config.highpass_1hz = 1;
     
     config.event_codes = {'11', '22'}; % {'111','112','221','222'};
-    config.epoch_window = [-0.2 0.25]; % epoch window
+    config.epoch_window = [-0.2 1.0]; % epoch window
     config.baseline_window = [-0.2 0]; % baseline correction
     config.amplitude_threshold = 100; % uV threshold
     
