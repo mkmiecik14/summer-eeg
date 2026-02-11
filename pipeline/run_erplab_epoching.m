@@ -1,8 +1,6 @@
 %% ERPLAB ARTIFACT REJECTION PIPELINE
 % This runs ERPLAB-based artifact rejection for all subjects using erplab_art_rej.m function
 
-clear; clc;
-
 % Add function paths
 addpath('src/functions');
 addpath('src/utils');

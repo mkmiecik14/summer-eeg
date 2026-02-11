@@ -1,8 +1,6 @@
 %% COMBINE MARKERS AND EXTRACT RESULTS PIPELINE
 % This runs combine_markers and extract_results for all subjects
 
-clear; clc;
-
 % Add function paths
 addpath('src/functions');
 addpath('src/utils');

@@ -1,8 +1,6 @@
 %% SIMPLE EPOCHING PIPELINE
 % This runs epoching and artifact rejection for all subjects using eeg_epochs.m function
 
-clear; clc;
-
 % Add function paths
 addpath('src/functions');
 addpath('src/utils');

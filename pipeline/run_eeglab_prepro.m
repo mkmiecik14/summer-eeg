@@ -1,8 +1,6 @@
 %% SIMPLE PREPROCESSING PIPELINE
 % This replaces current eeg_prepro.m for loop
 
-clear; clc;
-
 % Add function paths
 addpath('src/functions');
 addpath('src/utils');

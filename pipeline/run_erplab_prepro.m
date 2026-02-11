@@ -1,8 +1,6 @@
 %% ERPLAB PREPROCESSING PIPELINE
 % This runs ERPLAB-based preprocessing for all subjects
 
-clear; clc;
-
 % Add function paths
 addpath('src/functions');
 addpath('src/utils');

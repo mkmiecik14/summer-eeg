@@ -1,8 +1,6 @@
 %% SIMPLE ICA PIPELINE
 % This runs ICA decomposition for all subjects using eeg_ica.m function
 
-clear; clc;
-
 % Add function paths
 addpath('src/functions');
 addpath('src/utils');
