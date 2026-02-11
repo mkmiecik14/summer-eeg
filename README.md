@@ -162,6 +162,12 @@ Raw .bdf data
     v                       Final .mat files
 ```
 
+### Meta-Pipeline Scripts
+
+Rather than running each step individually, three meta-pipeline scripts chain the stages together automatically. `run_eeglab_pipeline` runs the EEGLAB side (Steps 1-3: preprocessing, ICA, and epoching). `run_erplab_pipeline` runs the ERPLAB side (Steps 4-5: preprocessing and artifact rejection). Because the EEGLAB and ERPLAB pipelines are independent, they can be run in either order. Once both have completed, `run_entire_pipeline` can be used to run all six steps end-to-end in a single call — it executes the EEGLAB pipeline, then the ERPLAB pipeline, then the final combine-and-extract step.
+
+![Meta-pipeline Architecture](doc/pipeline-pipeline.png)
+
 ## Reviewing Data
 
 Use `review_eeg_simple` to visually inspect data at any processing stage:
