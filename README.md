@@ -141,6 +141,8 @@ These are the recommended way to run the pipeline from scratch.
 
 ## Processing Flow
 
+![Processing Flow](doc/script-pipeline.png)
+
 ```
 Raw .bdf data
     |

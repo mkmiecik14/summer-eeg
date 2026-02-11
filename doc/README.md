@@ -9,6 +9,8 @@ Documentation and channel information for the EEG pipeline.
 | `ss-info.xlsx` | Subject list and bad channel information. Column 1 = subject ID (must match `.bdf` filename), Column 2 = bad channel indices (comma-separated integers, or empty). | No — contains participant info. Must be added manually. |
 | `chan_info_nose_along_fixed.mat` | Channel metadata structure used during preprocessing. | Yes |
 | `chan_locs_nose_along_fixed.mat` | 64-channel electrode locations for EEGLAB (nose-along orientation). Used for topographic plots and channel interpolation. | Yes |
+| `script-pipeline.png` | Diagram showing the individual processing functions/scripts and their workflow. | Yes |
+| `pipeline-pipeline.png` | Diagram showing how meta-pipeline scripts relate to each other. | Yes |
 
 ## Editing the subject list
 

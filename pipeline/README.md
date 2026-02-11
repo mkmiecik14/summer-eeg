@@ -24,3 +24,5 @@ These scripts run multiple stages in sequence:
 | `run_eeglab_pipeline.m` | 1-3 | Runs EEGLAB preprocessing, ICA, and epoching |
 | `run_erplab_pipeline.m` | 4-5 | Runs ERPLAB preprocessing and artifact rejection |
 | `run_entire_pipeline.m` | 1-6 | Runs all stages end-to-end |
+
+![Meta-pipeline Architecture](../doc/pipeline-pipeline.png)
